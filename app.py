@@ -130,6 +130,7 @@ def seed_db():
         username=Config.MONITOR_USERNAME,
         password=raw_password  # ⚠️ acceptable for lab, not production
     )
+    
 
     print("📧 Monitor email sent successfully")
     print(f"✅ Monitor account created → username: {Config.MONITOR_USERNAME}")

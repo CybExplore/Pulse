@@ -164,6 +164,7 @@ def change_password():
 @account.route("/settings/change-email", methods=["POST"])
 @login_required
 def change_email():
+    
     me        = current_user()
     new_email = request.form.get("email", "").strip()
 
