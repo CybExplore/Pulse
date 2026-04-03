@@ -9,6 +9,7 @@ import os
 import pymysql
 from flask import Flask
 from config import Config
+from eventlet.green.threading import Event
 from extensions import db, socketio
 from models import User
 
