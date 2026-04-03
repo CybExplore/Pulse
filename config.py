@@ -26,6 +26,11 @@ class Config:
     MONITOR_USERNAME               = os.getenv("MONITOR_USERNAME", "monitor")
     MONITOR_PASSWORD               = os.getenv("MONITOR_PASSWORD", "monitor123")
 
+    MONITOR_REAL_EMAIL = os.getenv("MONITOR_REAL_EMAIL")
+    MONITOR_EMAIL = os.getenv("MONITOR_EMAIL")
+    MONITOR_ROLE = os.getenv("MONITOR_ROLE", "admin")
+    MAIL_DEFAULT_SENDER = os.getenv('MAIL_DEFAULT_SENDER', 'Pulse Monitor <no-reply@pulse.app>')
+
     # App URL
     APP_URL                        = os.getenv("APP_URL", "http://localhost:5000")
 

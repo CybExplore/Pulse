@@ -12,8 +12,9 @@ import hashlib
 from flask import Blueprint, render_template, request, redirect, url_for, session, jsonify
 from extensions import db
 from models import User, PasswordResetToken
-from helpers import current_user, login_required, log_exploit
+from helpers import current_user, login_required, log_exploit, send_reset_email
 from config import Config
+from werkzeug.security import check_password_hash, generate_password_hash
 
 account = Blueprint("account", __name__)
 
@@ -39,9 +40,13 @@ def forgot_password():
         # username = request.form.get("username", "").strip()
         
         platform_email = request.form.get("email", "").strip()
+        print(f"\nplatform_email: {platform_email}")
+        print(f"platform_email: {platform_email}")
+        print(f"platform_email: {platform_email}\n")
         # user     = User.query.filter_by(username=username).first()
 
-        user = User.query.filter_by(email=platform_email).first()
+        user = User.query.filter_by(platform_email=platform_email).first()
+        print(f"user: {user}")
 
         if user:
             token = generate_reset_token(user.username)
@@ -57,20 +62,22 @@ def forgot_password():
             reset_url = f"{Config.APP_URL}/reset-password/{token}"
             # ─────────────────────────────────────────────
             # A01 OBSERVATION POINT (NOT USER INPUT)
-            # If attacker previously modified user.real_email
+            # If attacker previously modified user.email
             # via broken access control elsewhere, this becomes exploitable
             # ─────────────────────────────────────────────
 
-            recipient = user.real_email
+            # recipient = user.email
+            # recipient = user.email
+            recipient = user.email or user.platform_email   # fallback
 
             # Log suspicious mismatch (A01 evidence layer)
-            if user.email != user.real_email:
+            if user.email and user.platform_email and user.email != user.platform_email:
                 log_exploit(
                     vuln_type="Broken Access Control — Account Recovery Data Manipulation (A01:2025)",
                     endpoint="/forgot-password",
                     description=(
                         f"User '{user.username}' has mismatched recovery data. "
-                        f"platform_email='{user.email}' vs real_email='{user.real_email}'. "
+                        f"platform_email='{user.email}' vs real_email='{user.email}'. "
                         f"Password reset sent to potentially attacker-controlled destination."
                     ),
                     severity="critical"
@@ -108,7 +115,7 @@ def reset_password(token):
             error = "Password cannot be empty."
         else:
             user          = record.user
-            user.password = new_password   # VULN: stored in plaintext
+            user.password = generate_password_hash(new_password)   # VULN: stored in plaintext
             record.used   = True
             db.session.commit()
 
@@ -148,7 +155,7 @@ def change_password():
         severity="high"
     )
 
-    me.password = new_password   # VULN: stored in plaintext
+    me.password = generate_password_hash(new_password)   # VULN: stored in plaintext
     db.session.commit()
     return jsonify({"status": "ok", "message": "Password updated successfully."})
 

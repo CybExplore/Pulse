@@ -149,7 +149,7 @@ def dashboard():
 def create_participant():
     display_name = request.form.get("display_name", "").strip()
     username     = request.form.get("username", "").strip()
-    real_email   = request.form.get("real_email", "").strip()
+    real_email   = request.form.get("email", "").strip()
 
     if not display_name or not username:
         return jsonify({"status": "error", "message": "Display name and username are required."}), 400
@@ -167,7 +167,7 @@ def create_participant():
         password=hashed_password,
         display_name=display_name,
         platform_email=platform_email,
-          real_email=real_email,
+        real_email=real_email,
         role="user",
         verified=False
     )
@@ -244,3 +244,5 @@ def clear_logs():
     ExploitLog.query.delete()
     db.session.commit()
     return redirect(url_for("monitor.dashboard"))
+
+

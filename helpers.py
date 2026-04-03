@@ -86,3 +86,47 @@ Login URL: {Config.APP_URL}
 """
 
     mail.send(msg)
+
+from flask_mail import Message
+from extensions import mail
+from config import Config
+
+
+def send_reset_email(recipient_email, reset_url):
+    """
+    Sends password reset email to user.
+    """
+
+    subject = "Pulse Password Reset Request"
+
+    body = f"""
+Hello,
+
+We received a request to reset your password.
+
+Click the link below to reset it:
+
+{reset_url}
+
+If you did not request this, ignore this email.
+
+Regards,
+Pulse Security Team
+"""
+
+    msg = Message(
+        subject=subject,
+        recipients=[recipient_email],
+        body=body,
+        sender=Config.MAIL_DEFAULT_SENDER
+    )
+
+    try:
+        mail.send(msg)
+        print(f"[MAIL] Reset email sent to {recipient_email}")
+        return True
+
+    except Exception as e:
+        print(f"[MAIL ERROR] Failed to send reset email: {e}")
+        return False
+

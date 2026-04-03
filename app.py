@@ -62,17 +62,22 @@ def create_app():
     mail.init_app(app)
 
     # ── Register blueprints ──────────────────
-    app.register_blueprint(auth)
-    app.register_blueprint(feed)
-    app.register_blueprint(profile)
-    app.register_blueprint(messages)
-    app.register_blueprint(api)
-    app.register_blueprint(admin)
-    app.register_blueprint(account)
-    app.register_blueprint(social)
-    app.register_blueprint(extra)
-    app.register_blueprint(features)
-    app.register_blueprint(monitor)
+    # app.register_blueprint(auth)
+    # app.register_blueprint(feed)
+    # app.register_blueprint(profile)
+    # app.register_blueprint(messages)
+    # app.register_blueprint(api)
+    # app.register_blueprint(admin)
+    # app.register_blueprint(account)
+    # app.register_blueprint(social)
+    # app.register_blueprint(extra)
+    # app.register_blueprint(features)
+    # app.register_blueprint(monitor)
+
+    # ── Register blueprints ──────────────────
+    blueprints = [auth, feed, profile, messages, api, admin, account, social, extra, features, monitor]
+    for bp in blueprints:
+        app.register_blueprint(bp)
 
     # ── Context processor ────────────────────
     # Injects monitor_secret into every template.
@@ -90,20 +95,28 @@ def create_app():
     return app
 
 
+from werkzeug.security import generate_password_hash
+
 def seed_db():
     """Create only the monitor/instructor account on first run."""
-    if User.query.count() > 0:
+
+    existing = User.query.filter_by(username=Config.MONITOR_USERNAME).first()
+    if existing:
         return
 
     raw_password = Config.MONITOR_PASSWORD
-    
+    hash_password = generate_password_hash(raw_password)
+
+    print("\nCreating monitor account...")
+    print("Password hashed successfully")
+
     monitor_user = User(
         username=Config.MONITOR_USERNAME,
-        password=generate_password_hash(raw_password),
-        # email=Config.MONITOR_REAL_EMAIL,
-        # platform_email=Config.MONITOR_EMAIL,
+        password=hash_password,
+        email=Config.MONITOR_REAL_EMAIL,
+        platform_email=Config.MONITOR_EMAIL,
         display_name="Monitor",
-        # role=Config.MONITOR_ROLE,
+        role=Config.MONITOR_ROLE,
         verified=True,
         bio="Instructor monitoring account."
     )
@@ -112,17 +125,13 @@ def seed_db():
     db.session.commit()
 
     # 🔥 SEND EMAIL AFTER CREATION
-    # try:
     send_account_email(
-        # to_email=Config.MONITOR_REAL_EMAIL,
-        to_email=Config.MONITOR_EMAIL,
+        to_email=Config.MONITOR_REAL_EMAIL,
         username=Config.MONITOR_USERNAME,
-        password=raw_password
+        password=raw_password  # ⚠️ acceptable for lab, not production
     )
-    print("📧 Monitor email sent successfully")
-    # except Exception as e:
-    #     print(f"⚠️ Email failed: {e}")
 
+    print("📧 Monitor email sent successfully")
     print(f"✅ Monitor account created → username: {Config.MONITOR_USERNAME}")
 
 
