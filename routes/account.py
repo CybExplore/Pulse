@@ -161,7 +161,6 @@ def change_password():
 
 
 # ─── Reset Platform Email ────────────────────────────────
-
 @account.route("/settings/change-email", methods=["POST"])
 @login_required
 def change_email():
