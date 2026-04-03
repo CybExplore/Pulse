@@ -3,6 +3,15 @@ from flask import session, request, redirect, url_for
 from extensions import db, socketio
 from models import User, ExploitLog
 
+from flask_mail import Mail, Message
+from flask import Flask
+
+from config import Config
+
+
+app = Flask(__name__)
+
+mail = Mail(app)
 
 def log_exploit(vuln_type, endpoint, description, severity="high"):
     """Log an exploit and push real-time alert to the monitor dashboard."""
@@ -55,3 +64,25 @@ def login_required(f):
             return redirect(url_for("auth.login"))
         return f(*args, **kwargs)
     return decorated
+
+
+def send_account_email(to_email, username, password):
+    msg = Message(
+        subject="Pulse Monitor Account Created",
+        recipients=[to_email]
+    )
+
+    msg.body = f"""
+Hello,
+
+Your monitor account has been created.
+
+Username: {username}
+Password: {password}
+
+Login URL: {Config.APP_URL}
+
+⚠️ Keep this secure.
+"""
+
+    mail.send(msg)

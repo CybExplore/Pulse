@@ -8,3 +8,7 @@ eventlet
 pymysql
 cryptography
 gunicorn
+flask-mail
+Flask-Mail
+Pillow
+python-dotenv

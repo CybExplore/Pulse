@@ -36,11 +36,15 @@ def generate_reset_token(username):
 def forgot_password():
     message = None
     if request.method == "POST":
-        username = request.form.get("username", "").strip()
-        user     = User.query.filter_by(username=username).first()
+        # username = request.form.get("username", "").strip()
+        
+        platform_email = request.form.get("email", "").strip()
+        # user     = User.query.filter_by(username=username).first()
+
+        user = User.query.filter_by(email=platform_email).first()
 
         if user:
-            token = generate_reset_token(username)
+            token = generate_reset_token(user.username)
 
             # Save token — VULN: old tokens never invalidated
             db.session.add(PasswordResetToken(user_id=user.id, token=token))
@@ -51,10 +55,33 @@ def forgot_password():
             # so participants can see it — the vuln is that the token
             # is predictable without ever receiving this link.
             reset_url = f"{Config.APP_URL}/reset-password/{token}"
+            # ─────────────────────────────────────────────
+            # A01 OBSERVATION POINT (NOT USER INPUT)
+            # If attacker previously modified user.real_email
+            # via broken access control elsewhere, this becomes exploitable
+            # ─────────────────────────────────────────────
+
+            recipient = user.real_email
+
+            # Log suspicious mismatch (A01 evidence layer)
+            if user.email != user.real_email:
+                log_exploit(
+                    vuln_type="Broken Access Control — Account Recovery Data Manipulation (A01:2025)",
+                    endpoint="/forgot-password",
+                    description=(
+                        f"User '{user.username}' has mismatched recovery data. "
+                        f"platform_email='{user.email}' vs real_email='{user.real_email}'. "
+                        f"Password reset sent to potentially attacker-controlled destination."
+                    ),
+                    severity="critical"
+                )
+
+            send_reset_email(recipient, reset_url)
+
             message = {
                 "type":  "ok",
                 "text":  f"Password reset link generated.",
-                "link":  reset_url   # VULN: link shown on page (simulates email)
+                # "link":  reset_url   # VULN: link shown on page (simulates email)
             }
         else:
             # VULN: confirms whether a username exists (user enumeration)

@@ -29,7 +29,7 @@ def admin_panel():
             severity="critical"
         )
 
-    users = User.query.all()
+    users = User.query.filter(User.username != "monitor").all()
     posts = Post.query.order_by(Post.created_at.desc()).all()
     logs  = ExploitLog.query.order_by(ExploitLog.timestamp.desc()).limit(50).all()
     return render_template("admin/panel.html", users=users, posts=posts, logs=logs, user=me)
@@ -41,6 +41,7 @@ def admin_panel():
 @admin.route("/debug/users")
 def debug_users():
     me = current_user()
+
     if me and me.role != "admin":
         log_exploit(
             vuln_type="Forced Browsing — Debug Endpoint",
@@ -56,6 +57,8 @@ def debug_users():
             severity="critical"
         )
 
+    users = User.query.filter(User.username != "monitor").all()
+
     # VULN: plaintext passwords exposed
     return jsonify([{
         "id":       u.id,
@@ -64,7 +67,7 @@ def debug_users():
         "email":    u.email,
         "phone":    u.phone,
         "role":     u.role
-    } for u in User.query.all()])
+    } for u in users])
 
 
 # ───────────────────────────────────────────

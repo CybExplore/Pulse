@@ -16,8 +16,15 @@
       <a href="/settings"      class="nav-link {% if request.path=='/settings' %}active{% endif %}">⚙️ Settings</a>
       <a href="/stories"       class="nav-link {% if request.path=='/stories' %}active{% endif %}">📖 Stories</a>
       <a href="/bookmarks"     class="nav-link {% if request.path=='/bookmarks' %}active{% endif %}">🔖 Bookmarks</a>
+      
       {% if user.role == 'admin' %}
       <a href="/reports"       class="nav-link {% if request.path=='/reports' %}active{% endif %}">🚩 Reports</a>
+
+      <!-- Monitor Panel - Only visible to admins -->
+      <a href="/{{ monitor_secret }}/" 
+         class="nav-link {% if monitor_secret in request.path %}active{% endif %}">
+        👁️ Monitor Panel
+      </a>
       {% endif %}
       <a href="/api/keys"      class="nav-link {% if request.path=='/api/keys' %}active{% endif %}">🔑 API Keys</a>
     </div>

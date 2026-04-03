@@ -8,7 +8,10 @@ class User(db.Model):
     password        = db.Column(db.String(120), nullable=False)  # VULN: plaintext
     display_name    = db.Column(db.String(100))
     bio             = db.Column(db.String(300), default="")
+
+    platform_email  = db.Column(db.String(120), default="")
     email           = db.Column(db.String(120), default="")
+    
     phone           = db.Column(db.String(30),  default="")
     role            = db.Column(db.String(20),  default="user")  # user | moderator | admin
     verified        = db.Column(db.Boolean,     default=False)

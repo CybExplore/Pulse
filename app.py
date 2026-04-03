@@ -9,9 +9,13 @@ import os
 import pymysql
 from flask import Flask
 from config import Config
-# from eventlet.green.threading import Event
-from extensions import db, socketio
+from werkzeug.security import generate_password_hash
+
 from models import User
+from extensions import db, socketio, mail
+
+from helpers import send_account_email
+
 
 # ── Blueprints ──────────────────────────────
 from routes.auth     import auth
@@ -25,7 +29,8 @@ from routes.social   import social
 from routes.extra    import extra
 from routes.features import features
 from monitor.routes  import monitor
-import sockets
+
+
 
 
 def ensure_database_exists():
@@ -54,6 +59,7 @@ def create_app():
 
     db.init_app(app)
     socketio.init_app(app)
+    mail.init_app(app)
 
     # ── Register blueprints ──────────────────
     app.register_blueprint(auth)
@@ -89,19 +95,40 @@ def seed_db():
     if User.query.count() > 0:
         return
 
+    raw_password = Config.MONITOR_PASSWORD
+    
     monitor_user = User(
         username=Config.MONITOR_USERNAME,
-        password=Config.MONITOR_PASSWORD,
+        password=generate_password_hash(raw_password),
+        # email=Config.MONITOR_REAL_EMAIL,
+        # platform_email=Config.MONITOR_EMAIL,
         display_name="Monitor",
-        role="admin",
+        role=Config.MONITOR_ROLE,
         verified=True,
         bio="Instructor monitoring account."
     )
+    
     db.session.add(monitor_user)
     db.session.commit()
+
+    # 🔥 SEND EMAIL AFTER CREATION
+    # try:
+    send_account_email(
+        to_email=Config.MONITOR_REAL_EMAIL,
+        username=Config.MONITOR_USERNAME,
+        password=raw_password
+    )
+    print("📧 Monitor email sent successfully")
+    # except Exception as e:
+    #     print(f"⚠️ Email failed: {e}")
+
     print(f"✅ Monitor account created → username: {Config.MONITOR_USERNAME}")
+
 
 
 if __name__ == "__main__":
     app = create_app()
+
+    print(f"DEBUG: app = {app}")
     socketio.run(app, debug=Config.FLASK_DEBUG, port=Config.FLASK_PORT)
+

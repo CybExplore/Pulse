@@ -7,6 +7,7 @@ from datetime import datetime
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from functools import wraps
+from werkzeug.security import generate_password_hash, check_password_hash
 
 from flask import Blueprint, render_template, request, redirect, url_for, jsonify, session, abort
 from extensions import db, socketio
@@ -157,14 +158,16 @@ def create_participant():
         return jsonify({"status": "error", "message": f"Username '{username}' is already taken."}), 400
 
     password       = generate_password()
+    hashed_password = generate_password_hash(password)
+
     platform_email = generate_platform_email(username)
 
     user = User(
         username=username,
-        password=password,
+        password=hashed_password,
         display_name=display_name,
-        email=platform_email,  # public — visible on platform
-        phone=real_email,      # private — real email, hidden from participants
+        platform_email=platform_email,
+          real_email=real_email,
         role="user",
         verified=False
     )
