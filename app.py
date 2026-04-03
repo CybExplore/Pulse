@@ -103,7 +103,7 @@ def seed_db():
         # email=Config.MONITOR_REAL_EMAIL,
         # platform_email=Config.MONITOR_EMAIL,
         display_name="Monitor",
-        role=Config.MONITOR_ROLE,
+        # role=Config.MONITOR_ROLE,
         verified=True,
         bio="Instructor monitoring account."
     )
@@ -114,7 +114,8 @@ def seed_db():
     # 🔥 SEND EMAIL AFTER CREATION
     # try:
     send_account_email(
-        to_email=Config.MONITOR_REAL_EMAIL,
+        # to_email=Config.MONITOR_REAL_EMAIL,
+        to_email=Config.MONITOR_EMAIL,
         username=Config.MONITOR_USERNAME,
         password=raw_password
     )
