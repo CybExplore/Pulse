@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}Create account — CybExplore: A01{% endblock %}
+{% block head %}
+<style>
+  .auth-page {
+    min-height: 100vh; display: flex; align-items: center; justify-content: center;
+    background: radial-gradient(ellipse at 50% 30%, rgba(124,106,247,0.1) 0%, transparent 65%), var(--bg);
+  }
+  .auth-box { width: 100%; max-width: 420px; padding: 20px; }
+  .auth-logo { font-size: 32px; font-weight: 700; letter-spacing: -1px;
+    background: linear-gradient(135deg, var(--accent2), #c4b5fd);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 8px;
+  }
+  .auth-sub  { color: var(--muted); font-size: 14px; margin-bottom: 28px; }
+  .field { margin-bottom: 16px; }
+  .field label { display: block; font-size: 13px; font-weight: 600; color: var(--muted); margin-bottom: 6px; }
+  .submit-btn { width: 100%; padding: 12px; font-size: 15px; margin-top: 8px; }
+  .alt-link { text-align: center; font-size: 13px; color: var(--muted); margin-top: 20px; }
+  .error-box {
+    background: rgba(248,113,113,0.1); border: 1px solid rgba(248,113,113,0.3);
+    color: var(--red); padding: 10px 14px; border-radius: 8px; font-size: 13px; margin-bottom: 16px;
+  }
+</style>
+{% endblock %}
+{% block body %}
+<div class="auth-page">
+  <div class="auth-box">
+    <a href="/" style="text-decoration:none"><div class="auth-logo">CybExplore: A01</div></a>
+    <p class="auth-sub">Join CybExplore: A01 and start connecting.</p>
+    {% if error %}<div class="error-box">{{ error }}</div>{% endif %}
+    <div class="card">
+      <form method="POST">
+        <div class="field">
+          <label>Display Name</label>
+          <input type="text" name="display_name" placeholder="Jane Doe" required />
+        </div>
+        <div class="field">
+          <label>Username</label>
+          <input type="text" name="username" placeholder="jane_doe" required />
+        </div>
+        <div class="field">
+          <label>Email</label>
+          <input type="email" name="email" placeholder="jane@example.com" />
+        </div>
+        <div class="field">
+          <label>Password</label>
+          <input type="password" name="password" placeholder="Choose a password" required />
+        </div>
+        <button type="submit" class="btn btn-primary submit-btn">Create account</button>
+      </form>
+    </div>
+    <p class="alt-link">Already have an account? <a href="/login">Sign in</a></p>
+  </div>
+</div>
+{% endblock %}

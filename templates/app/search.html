@@ -1,0 +1,63 @@
+{% extends "app/layout.html" %}
+{% block title %}Search — CybExplore: A01{% endblock %}
+{% block content %}
+<div style="padding:20px 24px;border-bottom:1px solid var(--border);">
+  <h2 style="font-size:18px;font-weight:700;margin-bottom:16px;">Search</h2>
+  <form method="GET" action="/search" style="display:flex;gap:10px;">
+    <input type="text" name="q" value="{{ query }}" placeholder="Search people or posts..." style="flex:1;" autofocus />
+    <button type="submit" class="btn btn-primary">Search</button>
+  </form>
+</div>
+
+{% if query %}
+<div style="padding:20px 24px;">
+
+  <!-- Users -->
+  {% if results_users %}
+  <div style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:12px;">People</div>
+  {% for u in results_users %}
+  <a href="/user/{{ u.username }}" style="text-decoration:none;">
+    <div style="display:flex;align-items:center;gap:12px;padding:12px;border-radius:var(--radius);border:1px solid var(--border);margin-bottom:8px;background:var(--bg2);">
+      <div style="width:40px;height:40px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;flex-shrink:0;">{{ u.display_name[0].upper() }}</div>
+      <div style="flex:1;">
+        <div style="font-size:14px;font-weight:600;color:var(--text);">{{ u.display_name }} {% if u.verified %}<span style="color:var(--accent2);">✓</span>{% endif %}</div>
+        <div style="font-size:13px;color:var(--muted);">@{{ u.username }} · <span class="badge badge-{{ u.role }}">{{ u.role }}</span></div>
+      </div>
+    </div>
+  </a>
+  {% endfor %}
+  {% endif %}
+
+  <!-- Posts -->
+  {% if results_posts %}
+  <div style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin:20px 0 12px;">Posts</div>
+  {% for post in results_posts %}
+  <div style="padding:14px;border-radius:var(--radius);border:1px solid var(--border);margin-bottom:8px;background:var(--bg2);">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+      <div style="width:30px;height:30px;border-radius:50%;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;color:var(--accent2);">{{ post.author.display_name[0].upper() }}</div>
+      <a href="/user/{{ post.author.username }}" style="font-size:13px;font-weight:600;color:var(--text);">@{{ post.author.username }}</a>
+      {% if post.is_private %}<span style="font-size:11px;color:var(--red);">🔒 Private</span>{% endif %}
+      <span style="font-size:11px;color:var(--muted);margin-left:auto;">{{ post.created_at.strftime('%b %d') }}</span>
+    </div>
+    <div style="font-size:14px;line-height:1.5;color:var(--text);">{{ post.content }}</div>
+    <div style="font-size:12px;color:var(--muted);margin-top:8px;">❤️ {{ post.likes }}</div>
+  </div>
+  {% endfor %}
+  {% endif %}
+
+  {% if not results_users and not results_posts %}
+  <div style="text-align:center;color:var(--muted);padding:40px 0;">No results for "{{ query }}"</div>
+  {% endif %}
+
+</div>
+{% endif %}
+{% endblock %}
+
+{% block aside %}
+<div style="display:flex;flex-direction:column;gap:12px;">
+  <div class="card">
+    <div style="font-size:13px;font-weight:700;color:var(--muted);margin-bottom:8px;">SEARCH HISTORY</div>
+    <a href="/search/history" style="font-size:13px;color:var(--accent2);">View your history →</a>
+  </div>
+</div>
+{% endblock %}

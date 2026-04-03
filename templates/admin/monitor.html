@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CybExplore: A01 — Monitor</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.min.js"></script>
+
+  {# Pass secret path to JS safely via a data attribute #}
+  <meta name="secret" content="{{ secret }}">
+
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+    :root{
+      --bg:#070710;--bg2:#0f0f1a;--bg3:#17172a;--border:#252535;
+      --text:#e8e8f5;--muted:#6868a0;--accent:#7c6af7;--accent2:#a78bfa;
+      --green:#34d399;--red:#f87171;--yellow:#fbbf24;--orange:#fb923c;
+      --radius:10px;--font:'DM Sans',sans-serif;--mono:'DM Mono',monospace;
+    }
+    body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;}
+    .layout{display:grid;grid-template-columns:300px 1fr;min-height:100vh;}
+
+    /* Sidebar */
+    .sidebar{background:var(--bg2);border-right:1px solid var(--border);padding:24px 16px;display:flex;flex-direction:column;gap:20px;overflow-y:auto;}
+    .monitor-title{font-size:16px;font-weight:700;background:linear-gradient(135deg,var(--accent2),#c4b5fd);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+    .monitor-sub{font-size:11px;color:var(--muted);margin-top:2px;}
+    .section-label{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;}
+    .stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+    .stat-box{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:12px;}
+    .stat-num{font-size:22px;font-weight:700;}
+    .stat-label{font-size:11px;color:var(--muted);margin-top:2px;}
+
+    /* Create form */
+    .create-form{display:flex;flex-direction:column;gap:8px;}
+    .create-form input{background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:var(--font);font-size:12px;padding:8px 10px;width:100%;outline:none;}
+    .create-form input:focus{border-color:var(--accent);}
+    .create-form input::placeholder{color:var(--muted);}
+    .field-hint{font-size:10px;color:var(--muted);padding-left:2px;}
+    .create-btn{background:var(--accent);color:#fff;border:none;border-radius:8px;padding:9px 14px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font);width:100%;}
+    .create-btn:hover{opacity:0.85;}
+    .create-btn:disabled{opacity:0.5;cursor:not-allowed;}
+    .result-box{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px;font-size:12px;line-height:1.6;display:none;}
+    .result-box.ok{border-color:rgba(52,211,153,0.4);color:var(--green);}
+    .result-box.err{border-color:rgba(248,113,113,0.4);color:var(--red);}
+
+    /* Toast form */
+    .toast-form{display:flex;flex-direction:column;gap:8px;}
+    .toast-form select,.toast-form textarea{background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:var(--font);font-size:12px;padding:8px 10px;width:100%;outline:none;resize:none;}
+    .toast-form textarea{min-height:56px;}
+    .send-btn{background:var(--bg3);color:var(--accent2);border:1px solid var(--accent);border-radius:8px;padding:8px 14px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font);width:100%;}
+    .send-btn:hover{background:rgba(124,106,247,0.15);}
+
+    /* Main */
+    .main{display:flex;flex-direction:column;overflow:hidden;}
+    .main-header{display:flex;align-items:center;justify-content:space-between;padding:20px 28px;border-bottom:1px solid var(--border);flex-shrink:0;}
+    .main-header h1{font-size:17px;font-weight:700;}
+    .live-dot{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--green);}
+    .dot{width:8px;height:8px;border-radius:50%;background:var(--green);animation:CybExplore: A01 1.5s infinite;}
+    @keyframes CybExplore: A01{0%,100%{opacity:1}50%{opacity:0.4}}
+
+    /* Tabs */
+    .tabs{display:flex;gap:4px;padding:16px 28px 0;border-bottom:1px solid var(--border);flex-shrink:0;}
+    .tab{padding:8px 16px;font-size:13px;font-weight:600;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;transition:all 0.15s;}
+    .tab:hover{color:var(--text);}
+    .tab.active{color:var(--accent2);border-bottom-color:var(--accent2);}
+    .tab-panel{display:none;flex:1;overflow-y:auto;padding:20px 28px;}
+    .tab-panel.active{display:block;}
+
+    /* Exploit feed */
+    .exploit-feed{display:flex;flex-direction:column;gap:10px;}
+    .exploit-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:start;animation:fadeIn 0.3s ease;}
+    @keyframes fadeIn{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
+    .exploit-card.new{border-color:var(--accent);box-shadow:0 0 12px rgba(124,106,247,0.15);}
+    .sev-dot{width:10px;height:10px;border-radius:50%;margin-top:4px;flex-shrink:0;}
+    .sev-critical{background:var(--red);box-shadow:0 0 6px var(--red);}
+    .sev-high{background:var(--orange);}
+    .sev-medium{background:var(--yellow);}
+    .sev-low{background:var(--green);}
+    .exploit-type{font-size:13px;font-weight:700;}
+    .exploit-desc{font-size:12px;color:var(--muted);margin-top:4px;line-height:1.5;}
+    .exploit-meta{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;}
+    .meta-chip{font-size:11px;background:var(--bg3);border:1px solid var(--border);border-radius:20px;padding:2px 8px;color:var(--muted);font-family:var(--mono);}
+    .exploit-right{text-align:right;flex-shrink:0;}
+    .exploit-time{font-size:11px;color:var(--muted);font-family:var(--mono);}
+
+    /* Participants table */
+    .ptable{width:100%;border-collapse:collapse;font-size:13px;}
+    .ptable th{text-align:left;padding:8px 12px;color:var(--muted);font-weight:600;border-bottom:1px solid var(--border);font-size:11px;text-transform:uppercase;letter-spacing:0.5px;}
+    .ptable td{padding:10px 12px;border-bottom:1px solid rgba(255,255,255,0.04);vertical-align:middle;}
+    .ptable tr:hover td{background:rgba(255,255,255,0.02);}
+    .del-btn{background:rgba(248,113,113,0.08);color:var(--red);border:1px solid rgba(248,113,113,0.2);border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer;font-family:var(--font);}
+    .del-btn:hover{background:rgba(248,113,113,0.18);}
+
+    /* Badges */
+    .badge{display:inline-block;padding:2px 7px;border-radius:20px;font-size:10px;font-weight:700;text-transform:uppercase;}
+    .badge-critical{background:rgba(248,113,113,0.15);color:var(--red);}
+    .badge-high{background:rgba(251,146,60,0.15);color:var(--orange);}
+    .badge-medium{background:rgba(251,191,36,0.15);color:var(--yellow);}
+    .badge-low{background:rgba(52,211,153,0.12);color:var(--green);}
+    .badge-admin{background:rgba(124,106,247,0.2);color:var(--accent2);}
+    .badge-user{background:rgba(112,112,160,0.15);color:var(--muted);}
+
+    /* Misc */
+    .clear-btn{background:rgba(248,113,113,0.1);color:var(--red);border:1px solid rgba(248,113,113,0.25);border-radius:8px;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font);}
+    .clear-btn:hover{background:rgba(248,113,113,0.2);}
+    .empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--muted);gap:8px;padding:60px 0;}
+    form{margin:0;}
+  </style>
+</head>
+<body>
+<div class="layout">
+
+  <!-- ── SIDEBAR ── -->
+  <div class="sidebar">
+    <div>
+      <div class="monitor-title">🛡️ CybExplore: A01 Monitor</div>
+      <div class="monitor-sub">Instructor dashboard</div>
+    </div>
+
+    <!-- Stats -->
+    <div>
+      <div class="section-label">Statistics</div>
+      <div class="stat-grid">
+        <div class="stat-box"><div class="stat-num" style="color:var(--red);" id="stat-critical">{{ logs|selectattr('severity','equalto','critical')|list|length }}</div><div class="stat-label">Critical</div></div>
+        <div class="stat-box"><div class="stat-num" id="stat-total">{{ logs|length }}</div><div class="stat-label">Total Exploits</div></div>
+        <div class="stat-box"><div class="stat-num" style="color:var(--accent2);" id="stat-attackers">{{ logs|map(attribute='attacker_username')|unique|list|length }}</div><div class="stat-label">Attackers</div></div>
+        <div class="stat-box"><div class="stat-num" style="color:var(--green);">{{ participants|length }}</div><div class="stat-label">Participants</div></div>
+      </div>
+    </div>
+
+    <!-- Add participant -->
+    <div>
+      <div class="section-label">Add Participant</div>
+      <div class="create-form">
+        <input type="text"  id="p-display"  placeholder="Display Name (e.g. John Doe)" />
+        <input type="text"  id="p-username" placeholder="Username (e.g. john_d)" />
+        <div class="field-hint">Platform email: <span id="email-preview" style="color:var(--accent2);font-family:var(--mono);">username@CybExplore: A01.app</span></div>
+        <input type="email" id="p-email" placeholder="Real Email (optional — for email delivery)" />
+        
+        <button class="create-btn" id="create-btn" onclick="createParticipant()">➕ Create Account</button>
+        <div class="result-box" id="create-result"></div>
+      </div>
+    </div>
+
+    <!-- Send toast -->
+    <div>
+      <div class="section-label">Send Notification</div>
+      <div class="toast-form">
+        <select id="toast-user">
+          {% for u in participants %}
+          <option value="{{ u.id }}">@{{ u.username }}</option>
+          {% endfor %}
+        </select>
+        <textarea id="toast-msg" placeholder="Message to show as toast..."></textarea>
+        <button class="send-btn" onclick="sendToast()">📣 Send Toast</button>
+      </div>
+    </div>
+
+    <a href="/feed" style="font-size:12px;color:var(--muted);text-decoration:none;margin-top:auto;">← Back to app</a>
+  </div>
+
+  <!-- ── MAIN ── -->
+  <div class="main">
+    <div class="main-header">
+      <h1>Monitor</h1>
+      <div style="display:flex;align-items:center;gap:12px;">
+        <div class="live-dot"><div class="dot"></div> Live</div>
+        <form method="POST" action="/{{ secret }}/clear-logs">
+          <button type="submit" class="clear-btn">Clear logs</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <div class="tab active" onclick="switchTab('exploits', this)">🚨 Exploit Feed <span id="tab-count" style="background:rgba(248,113,113,0.15);color:var(--red);border-radius:20px;padding:1px 7px;font-size:10px;margin-left:4px;">{{ logs|length }}</span></div>
+      <div class="tab" onclick="switchTab('participants', this)">👥 Participants <span style="background:rgba(124,106,247,0.15);color:var(--accent2);border-radius:20px;padding:1px 7px;font-size:10px;margin-left:4px;">{{ participants|length }}</span></div>
+    </div>
+
+    <!-- Exploit Feed Panel -->
+    <div class="tab-panel active" id="panel-exploits">
+      <div class="exploit-feed" id="exploit-feed">
+        {% if logs %}
+          {% for log in logs %}
+          <div class="exploit-card">
+            <div class="sev-dot sev-{{ log.severity }}"></div>
+            <div>
+              <div class="exploit-type">{{ log.vuln_type }}</div>
+              <div class="exploit-desc">{{ log.description }}</div>
+              <div class="exploit-meta">
+                <span class="meta-chip">{{ log.attacker_ip }}</span>
+                <span class="meta-chip">{{ log.endpoint }}</span>
+                <span class="meta-chip">@{{ log.attacker_username }}</span>
+              </div>
+            </div>
+            <div class="exploit-right">
+              <span class="badge badge-{{ log.severity }}">{{ log.severity }}</span>
+              <div class="exploit-time" style="margin-top:6px;">{{ log.timestamp.strftime('%H:%M:%S') }}</div>
+            </div>
+          </div>
+          {% endfor %}
+        {% else %}
+          <div class="empty-state"><div style="font-size:36px;">🕵️</div><div style="font-size:13px;">No exploits yet. Waiting for activity...</div></div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Participants Panel -->
+    <div class="tab-panel" id="panel-participants">
+      {% if participants %}
+      <table class="ptable">
+        <thead>
+          <tr>
+            <th>Display Name</th>
+            <th>Username</th>
+            <th>Platform Email</th>
+            <th>Real Email</th>
+            <th>Joined</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for p in participants %}
+          <tr>
+            <td style="font-weight:600;">{{ p.display_name }}</td>
+            <td style="font-family:var(--mono);color:var(--accent2);">@{{ p.username }}</td>
+            <td style="font-family:var(--mono);font-size:12px;">{{ p.email }}</td>
+            <td style="font-family:var(--mono);font-size:12px;color:var(--muted);">{{ p.phone }}</td>
+            <td style="font-size:12px;color:var(--muted);">{{ p.created_at.strftime('%b %d, %H:%M') }}</td>
+            <td>
+              <form method="POST" action="/{{ secret }}/delete-participant/{{ p.id }}" onsubmit="return confirm('Delete @{{ p.username }}?')">
+                <button type="submit" class="del-btn">Delete</button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+        <div class="empty-state"><div style="font-size:36px;">👥</div><div style="font-size:13px;">No participants yet. Add one using the form on the left.</div></div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<script>
+  // Read secret path from meta tag — never hardcoded
+  const SECRET = document.querySelector('meta[name="secret"]').content;
+
+  // ── Socket.IO ──
+  const socket = io();
+  socket.emit("join_admin");
+
+  socket.on("new_exploit", (data) => {
+    const empty = document.querySelector("#exploit-feed .empty-state");
+    if (empty) empty.remove();
+    const feed = document.getElementById("exploit-feed");
+    const card = document.createElement("div");
+    card.className = "exploit-card new";
+    card.innerHTML = `
+      <div class="sev-dot sev-${data.severity}"></div>
+      <div>
+        <div class="exploit-type">${data.vuln_type}</div>
+        <div class="exploit-desc">${data.description}</div>
+        <div class="exploit-meta">
+          <span class="meta-chip">${data.ip}</span>
+          <span class="meta-chip">${data.endpoint}</span>
+          <span class="meta-chip">@${data.attacker}</span>
+        </div>
+      </div>
+      <div class="exploit-right">
+        <span class="badge badge-${data.severity}">${data.severity}</span>
+        <div class="exploit-time" style="margin-top:6px;">${data.timestamp}</div>
+      </div>`;
+    feed.insertBefore(card, feed.firstChild);
+    setTimeout(() => card.classList.remove("new"), 2000);
+    document.getElementById("stat-total").textContent     = parseInt(document.getElementById("stat-total").textContent) + 1;
+    document.getElementById("tab-count").textContent      = parseInt(document.getElementById("tab-count").textContent) + 1;
+    if (data.severity === "critical") document.getElementById("stat-critical").textContent = parseInt(document.getElementById("stat-critical").textContent) + 1;
+  });
+
+  // ── Platform email preview ──
+  document.getElementById("p-username").addEventListener("input", function () {
+    const val = this.value.trim();
+    document.getElementById("email-preview").textContent = val ? `${val}@CybExplore: A01.app` : "username@CybExplore: A01.app";
+  });
+
+  // ── Create participant ──
+  async function createParticipant() {
+    const display  = document.getElementById("p-display").value.trim();
+    const username = document.getElementById("p-username").value.trim();
+    const email    = document.getElementById("p-email").value.trim();
+    const btn      = document.getElementById("create-btn");
+
+    if (!display || !username) {
+      showResult("err", "Display name and username are required.");
+      return;
+    }
+
+    btn.disabled    = true;
+    btn.textContent = "Creating...";
+
+    const fd = new FormData();
+    fd.append("display_name", display);
+    fd.append("username",     username);
+    if (email) fd.append("real_email", email);
+
+    try {
+      const res         = await fetch(`/${SECRET}/create-participant`, { method: "POST", body: fd });
+      const contentType = res.headers.get("content-type") || "";
+      if (!contentType.includes("application/json")) {
+        showResult("err", `Server error (${res.status}). Check the secret path in your .env.`);
+        return;
+      }
+
+      const data = await res.json();
+      if (data.status === "ok") {
+        const u       = data.user;
+        const summary = data.delivery.join("\n");
+        showResult("ok",
+          `✅ Account created!\n\n` +
+          `Login URL : ${u.login_url}\n` +
+          `Username  : ${u.username}\n` +
+          `Password  : ${u.password}\n` +
+          `Platform  : ${u.platform_email}\n` +
+          `Real Email: ${u.real_email}\n\n` +
+          `── Delivery ──\n${summary}`
+        );
+        document.getElementById("p-display").value  = "";
+        document.getElementById("p-username").value = "";
+        document.getElementById("p-email").value    = "";
+        document.getElementById("email-preview").textContent = "username@CybExplore: A01.app";
+        setTimeout(() => location.reload(), 6000);
+      } else {
+        showResult("err", `❌ ${data.message}`);
+      }
+    } catch (e) {
+      showResult("err", "Request failed: " + e.message);
+    }
+
+    btn.disabled    = false;
+    btn.textContent = "➕ Create Account";
+  }
+
+  function showResult(type, msg) {
+    const box = document.getElementById("create-result");
+    box.className        = `result-box ${type}`;
+    box.style.display    = "block";
+    box.style.whiteSpace = "pre-line";
+    box.textContent      = msg;
+  }
+
+  // ── Send toast ──
+  function sendToast() {
+    const userId  = document.getElementById("toast-user").value;
+    const message = document.getElementById("toast-msg").value.trim();
+    if (!message) return;
+    fetch(`/${SECRET}/send-toast`, {
+      method: "POST",
+      headers: {"Content-Type": "application/x-www-form-urlencoded"},
+      body: `user_id=${userId}&message=${encodeURIComponent(message)}`
+    }).then(() => { document.getElementById("toast-msg").value = ""; });
+  }
+
+  // ── Tabs ──
+  function switchTab(name, el) {
+    document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+    document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
+    el.classList.add("active");
+    document.getElementById(`panel-${name}`).classList.add("active");
+  }
+</script>
+</body>
+</html>

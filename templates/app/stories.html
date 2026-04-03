@@ -1,0 +1,69 @@
+{% extends "app/layout.html" %}
+{% block title %}Stories — Pulse{% endblock %}
+{% block content %}
+<div style="padding:20px 24px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">
+  <h2 style="font-size:18px;font-weight:700;">Stories</h2>
+  <button class="btn btn-primary btn-sm" onclick="document.getElementById('new-story').style.display='block'">+ New Story</button>
+</div>
+
+<!-- Compose -->
+<div id="new-story" style="display:none;padding:16px 24px;border-bottom:1px solid var(--border);background:var(--bg2);">
+  <textarea id="story-content" placeholder="Share a moment... (disappears in 24h)" maxlength="300" style="margin-bottom:10px;"></textarea>
+  <div style="display:flex;justify-content:space-between;align-items:center;">
+    <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--muted);cursor:pointer;">
+      <input type="checkbox" id="story-private" /> Private
+    </label>
+    <div style="display:flex;gap:8px;">
+      <button class="btn btn-ghost btn-sm" onclick="document.getElementById('new-story').style.display='none'">Cancel</button>
+      <button class="btn btn-primary btn-sm" onclick="postStory()">Share</button>
+    </div>
+  </div>
+</div>
+
+<!-- Stories list -->
+<div style="padding:16px 24px;display:flex;flex-wrap:wrap;gap:12px;">
+  {% for story in stories %}
+  <div onclick="viewStory({{ story.id }})" style="width:80px;cursor:pointer;text-align:center;">
+    <div style="width:70px;height:70px;border-radius:50%;background:{% if story.is_private %}var(--bg3){% else %}linear-gradient(135deg,var(--accent),var(--accent2)){% endif %};border:3px solid {% if story.is_private %}var(--border){% else %}var(--accent){% endif %};display:flex;align-items:center;justify-content:center;font-weight:700;font-size:20px;margin:0 auto 6px;">
+      {{ story.author.display_name[0].upper() }}
+    </div>
+    <div style="font-size:11px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">@{{ story.author.username }}</div>
+    {% if story.is_private %}<div style="font-size:10px;color:var(--red);">🔒</div>{% endif %}
+  </div>
+  {% else %}
+  <div style="color:var(--muted);font-size:14px;padding:20px 0;">No active stories.</div>
+  {% endfor %}
+</div>
+
+<!-- Story viewer -->
+<div id="story-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:1000;display:flex;align-items:center;justify-content:center;" onclick="this.style.display='none'">
+  <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:28px;max-width:420px;width:90%;" onclick="event.stopPropagation()">
+    <div id="story-content-view" style="font-size:16px;line-height:1.6;margin-bottom:12px;"></div>
+    <div id="story-meta" style="font-size:12px;color:var(--muted);"></div>
+    <button class="btn btn-ghost btn-sm" style="margin-top:14px;" onclick="document.getElementById('story-modal').style.display='none'">Close</button>
+  </div>
+</div>
+
+<script>
+  async function postStory() {
+    const content   = document.getElementById("story-content").value.trim();
+    const isPrivate = document.getElementById("story-private").checked;
+    if (!content) return;
+    const fd = new FormData();
+    fd.append("content", content);
+    if (isPrivate) fd.append("is_private", "on");
+    const res = await fetch("/stories/new", { method: "POST", body: fd });
+    if ((await res.json()).status === "ok") location.reload();
+  }
+
+  async function viewStory(id) {
+    const res  = await fetch(`/stories/${id}`);
+    const data = await res.json();
+    if (data.status === "error") { alert(data.message); return; }
+    document.getElementById("story-content-view").textContent = data.content;
+    document.getElementById("story-meta").textContent = `@${data.author} · ${data.is_private ? "🔒 Private · " : ""}${data.created_at}`;
+    document.getElementById("story-modal").style.display = "flex";
+  }
+</script>
+{% endblock %}
+{% block aside %}{% endblock %}

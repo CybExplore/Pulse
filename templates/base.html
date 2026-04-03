@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}CybExplore: A01{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0a0a0f; --bg2: #111118; --bg3: #1a1a24; --border: #2a2a38;
+      --text: #e8e8f0; --muted: #7070a0; --accent: #7c6af7; --accent2: #a78bfa;
+      --green: #34d399; --red: #f87171; --yellow: #fbbf24;
+      --radius: 12px; --font: 'DM Sans', sans-serif; --mono: 'DM Mono', monospace;
+    }
+    body { font-family: var(--font); background: var(--bg); color: var(--text); min-height: 100vh; }
+    a { color: var(--accent2); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* ── Toast ── */
+    #toast-container { position: fixed; top: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; }
+    .toast { background: var(--bg3); border: 1px solid var(--accent); border-left: 4px solid var(--accent); color: var(--text); padding: 14px 18px; border-radius: var(--radius); max-width: 340px; font-size: 14px; box-shadow: 0 8px 32px rgba(124,106,247,0.25); animation: slideIn 0.3s ease; }
+    .toast .toast-title { font-weight: 600; margin-bottom: 4px; color: var(--accent2); }
+    .toast.toast-message { border-color: var(--green); border-left-color: var(--green); }
+    .toast.toast-message .toast-title { color: var(--green); }
+    .toast.toast-follow  { border-color: var(--yellow); border-left-color: var(--yellow); }
+    .toast.toast-follow  .toast-title { color: var(--yellow); }
+    @keyframes slideIn { from { transform: translateX(120%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+    /* ── Buttons ── */
+    .btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; border: none; font-family: var(--font); transition: all 0.15s; }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover { background: var(--accent2); }
+    .btn-ghost { background: transparent; color: var(--muted); border: 1px solid var(--border); }
+    .btn-ghost:hover { border-color: var(--accent); color: var(--accent2); }
+    .btn-danger { background: var(--red); color: #fff; }
+    .btn-sm { padding: 5px 10px; font-size: 12px; }
+
+    .card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; }
+    input, textarea, select { background: var(--bg3); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-family: var(--font); font-size: 14px; padding: 10px 14px; width: 100%; outline: none; transition: border-color 0.15s; }
+    input:focus, textarea:focus, select:focus { border-color: var(--accent); }
+    textarea { resize: vertical; min-height: 80px; }
+
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+    .badge-admin     { background: rgba(124,106,247,0.2); color: var(--accent2); }
+    .badge-moderator { background: rgba(52,211,153,0.15); color: var(--green); }
+    .badge-user      { background: rgba(112,112,160,0.15); color: var(--muted); }
+    .badge-critical  { background: rgba(248,113,113,0.2); color: var(--red); }
+    .badge-high      { background: rgba(251,191,36,0.2);  color: var(--yellow); }
+    .badge-medium    { background: rgba(124,106,247,0.2); color: var(--accent2); }
+    .badge-low       { background: rgba(52,211,153,0.15); color: var(--green); }
+
+    /* ── Unread badge ── */
+    .nav-badge { background: var(--red); color: #fff; border-radius: 20px; font-size: 10px; font-weight: 700; padding: 1px 5px; margin-left: 2px; display: none; }
+    .nav-badge.visible { display: inline-block; }
+  </style>
+  {% block head %}{% endblock %}
+</head>
+<body>
+  <div id="toast-container"></div>
+  {% block body %}{% endblock %}
+
+  <script>
+    const socket   = io();
+    const userId   = {{ session.get('user_id', 'null') }};
+
+    if (userId) {
+      socket.emit("join_user", { user_id: userId });
+      fetchUnreadCounts();
+    }
+
+    // ── Admin toast from monitor ──
+    socket.on("toast_notification", (data) => {
+      showToast("📣 Message from Admin", data.message, "");
+    });
+
+    // ── New notification (follow, like, comment) ──
+    socket.on("new_notification", (data) => {
+      const icons = { follow: "👤", message: "💬", like: "❤️", comment: "💬" };
+      const icon  = icons[data.type] || "🔔";
+      showToast(`${icon} ${data.type.charAt(0).toUpperCase() + data.type.slice(1)}`, data.message, `toast-${data.type}`);
+
+      // Bump notification badge
+      const badge = document.getElementById("notif-badge");
+      if (badge) {
+        const current = parseInt(badge.textContent) || 0;
+        badge.textContent = current + 1;
+        badge.classList.add("visible");
+      }
+    });
+
+    // ── New message unread count ──
+    socket.on("unread_messages", (data) => {
+      const badge = document.getElementById("msg-badge");
+      if (badge) {
+        if (data.count > 0) {
+          badge.textContent = data.count;
+          badge.classList.add("visible");
+        } else {
+          badge.classList.remove("visible");
+        }
+      }
+    });
+
+    // ── Fetch unread counts on load ──
+    async function fetchUnreadCounts() {
+      try {
+        const res  = await fetch("/notifications/unread-count");
+        const data = await res.json();
+
+        const notifBadge = document.getElementById("notif-badge");
+        const msgBadge   = document.getElementById("msg-badge");
+
+        if (notifBadge && data.notifications > 0) {
+          notifBadge.textContent = data.notifications;
+          notifBadge.classList.add("visible");
+        }
+        if (msgBadge && data.messages > 0) {
+          msgBadge.textContent = data.messages;
+          msgBadge.classList.add("visible");
+        }
+      } catch(e) {}
+    }
+
+    function showToast(title, message, extraClass = "", duration = 5000) {
+      const container = document.getElementById("toast-container");
+      const toast     = document.createElement("div");
+      toast.className = `toast ${extraClass}`;
+      toast.innerHTML = `<div class="toast-title">${title}</div><div>${message}</div>`;
+      container.appendChild(toast);
+      setTimeout(() => toast.remove(), duration);
+    }
+  </script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

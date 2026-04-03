@@ -1,0 +1,427 @@
+{% extends "app/layout.html" %}
+{% block title %}Home — Pulse{% endblock %}
+
+{% block content %}
+<div class="feed-header">
+  <h2>Home</h2>
+</div>
+
+<!-- Compose -->
+<div class="compose-box card">
+  <form method="POST" action="/post/new">
+    <div class="compose-row">
+      <div class="avatar">{{ user.display_name[0].upper() }}</div>
+      <textarea name="content" placeholder="What's on your mind?" maxlength="280" id="compose-text"></textarea>
+    </div>
+    <div class="compose-footer">
+      <label class="private-toggle">
+        <input type="checkbox" name="is_private" /> <span>Private post</span>
+      </label>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <span class="char-count" id="char-count">280</span>
+        <button type="submit" class="btn btn-primary btn-sm">Post</button>
+      </div>
+    </div>
+  </form>
+</div>
+
+<!-- Posts -->
+<div class="posts-list">
+  {% for post in posts %}
+  <div class="post-card" id="post-{{ post.id }}">
+
+    {% if post.is_repost %}
+    <div class="repost-label">🔁 {{ post.author.display_name }} reposted</div>
+    {% endif %}
+
+    <div style="display:flex;gap:12px;">
+      <div class="post-avatar">{{ post.author.display_name[0].upper() }}</div>
+      <div class="post-body">
+        <div class="post-meta">
+          <a href="/user/{{ post.author.username }}" class="post-name">{{ post.author.display_name }}</a>
+          {% if post.author.verified %}<span style="color:var(--accent2);" title="Verified">✓</span>{% endif %}
+          <span class="badge badge-{{ post.author.role }}">{{ post.author.role }}</span>
+          <span class="post-username">@{{ post.author.username }}</span>
+          {% if post.is_private %}<span class="private-tag">🔒</span>{% endif %}
+        </div>
+
+        {% if post.is_repost and post.repost_thought %}
+        <div class="repost-thought">"{{ post.repost_thought }}"</div>
+        {% endif %}
+
+        <div class="post-content">{{ post.content }}</div>
+
+        <!-- Actions -->
+        <div class="post-actions">
+
+          <!-- Like -->
+          <button class="action-btn like-btn" data-id="{{ post.id }}" onclick="likePost(this)">
+            ❤️ <span class="like-count">{{ post.likes }}</span>
+          </button>
+
+          <!-- Comment toggle -->
+          <button class="action-btn" onclick="toggleComments({{ post.id }})">
+            💬 <span id="ccount-{{ post.id }}">{{ post.comments.count() }}</span>
+          </button>
+
+          <!-- Repost -->
+          <button class="action-btn" onclick="quickRepost({{ post.id }}, this)">
+            🔁 Repost
+          </button>
+
+          <!-- Repost with thought -->
+          <button class="action-btn" onclick="toggleThought({{ post.id }})">
+            ✍️ Quote
+          </button>
+
+          <!-- Share (copy link) -->
+          <button class="action-btn" onclick="sharePost({{ post.id }}, this)">
+            🔗 Share
+          </button>
+
+          <!-- Bookmark -->
+          <button class="action-btn" onclick="bookmarkPost({{ post.id }}, this)">
+            🔖 Save
+          </button>
+
+          <!-- Visibility toggle (own posts only) -->
+          {% if post.user_id == user.id %}
+          <button class="action-btn" onclick="toggleVisibility({{ post.id }}, this)">
+            {% if post.is_private %}🔓 Unprivate{% else %}🔒 Make Private{% endif %}
+          </button>
+          {% endif %}
+
+          <!-- Report -->
+          <button class="action-btn" onclick="reportPost({{ post.id }})">
+            🚩 Report
+          </button>
+
+          {% if post.user_id == user.id %}
+          <a href="/post/{{ post.id }}/edit" class="action-btn">✏️ Edit</a>
+          <form method="POST" action="/post/{{ post.id }}/delete" style="display:inline;">
+            <button type="submit" class="action-btn" style="color:var(--red);">🗑️ Delete</button>
+          </form>
+          {% endif %}
+        </div>
+
+        <!-- Repost with thought input -->
+        <div class="thought-box" id="thought-{{ post.id }}" style="display:none;">
+          <textarea class="thought-input" placeholder="Add your thought..." maxlength="280" id="thought-text-{{ post.id }}"></textarea>
+          <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:6px;">
+            <button class="action-btn" onclick="toggleThought({{ post.id }})">Cancel</button>
+            <button class="btn btn-primary btn-sm" onclick="repostWithThought({{ post.id }})">Quote & Repost</button>
+          </div>
+        </div>
+
+        <!-- Comments section -->
+        <div class="comments-section" id="comments-{{ post.id }}" style="display:none;">
+          <!-- Comment input -->
+          <div class="comment-compose">
+            <div class="comment-avatar">{{ user.display_name[0].upper() }}</div>
+            <div style="flex:1;">
+              <textarea class="comment-input" placeholder="Write a comment..." maxlength="500"
+                        id="comment-input-{{ post.id }}"></textarea>
+              <div style="display:flex;justify-content:flex-end;margin-top:4px;">
+                <button class="btn btn-primary btn-sm" onclick="submitComment({{ post.id }}, null)">Reply</button>
+              </div>
+            </div>
+          </div>
+          <!-- Loaded comments go here -->
+          <div class="comments-list" id="comments-list-{{ post.id }}"></div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<style>
+  .feed-header { padding:20px 24px; border-bottom:1px solid var(--border); }
+  .feed-header h2 { font-size:18px; font-weight:700; }
+
+  .compose-box { margin:16px; border-radius:var(--radius); }
+  .compose-row { display:flex; gap:12px; align-items:flex-start; }
+  .avatar { width:40px; height:40px; border-radius:50%; background:var(--accent); display:flex; align-items:center; justify-content:center; font-weight:700; font-size:16px; flex-shrink:0; }
+  .compose-row textarea { border:none; background:transparent; resize:none; font-size:16px; padding:8px 0; }
+  .compose-footer { display:flex; justify-content:space-between; align-items:center; margin-top:10px; padding-top:10px; border-top:1px solid var(--border); }
+  .private-toggle { display:flex; align-items:center; gap:6px; font-size:13px; color:var(--muted); cursor:pointer; }
+  .char-count { font-size:13px; color:var(--muted); }
+
+  .posts-list { display:flex; flex-direction:column; }
+  .post-card { padding:16px 24px; border-bottom:1px solid var(--border); transition:background 0.1s; }
+  .post-card:hover { background:rgba(255,255,255,0.02); }
+  .repost-label { font-size:12px; color:var(--muted); margin-bottom:8px; padding-left:54px; }
+  .repost-thought { font-size:14px; color:var(--accent2); font-style:italic; margin-bottom:6px; }
+  .post-avatar { width:42px; height:42px; border-radius:50%; background:var(--bg3); border:1px solid var(--border); display:flex; align-items:center; justify-content:center; font-weight:700; font-size:16px; flex-shrink:0; color:var(--accent2); }
+  .post-body { flex:1; min-width:0; }
+  .post-meta { display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-bottom:6px; }
+  .post-name { font-weight:700; font-size:14px; color:var(--text); text-decoration:none; }
+  .post-name:hover { text-decoration:underline; }
+  .post-username { font-size:13px; color:var(--muted); }
+  .post-content { font-size:15px; line-height:1.5; word-break:break-word; }
+  .private-tag { font-size:11px; color:var(--muted); }
+
+  .post-actions { display:flex; gap:4px; margin-top:10px; flex-wrap:wrap; }
+  .action-btn { background:none; border:none; cursor:pointer; font-size:13px; color:var(--muted); font-family:var(--font); padding:4px 8px; border-radius:6px; transition:all 0.15s; text-decoration:none; display:inline-flex; align-items:center; gap:4px; }
+  .action-btn:hover { background:var(--bg3); color:var(--text); }
+  .like-btn.liked { color:var(--red); }
+
+  /* Thought box */
+  .thought-box { margin-top:10px; background:var(--bg3); border:1px solid var(--border); border-radius:var(--radius); padding:12px; }
+  .thought-input { background:transparent; border:none; color:var(--text); font-family:var(--font); font-size:14px; padding:0; min-height:60px; resize:none; }
+
+  /* Comments */
+  .comments-section { margin-top:12px; border-top:1px solid var(--border); padding-top:12px; }
+  .comment-compose { display:flex; gap:10px; margin-bottom:12px; }
+  .comment-avatar { width:32px; height:32px; border-radius:50%; background:var(--accent); display:flex; align-items:center; justify-content:center; font-weight:700; font-size:12px; flex-shrink:0; }
+  .comment-input { background:var(--bg3); border:1px solid var(--border); border-radius:8px; color:var(--text); font-family:var(--font); font-size:13px; padding:8px 10px; width:100%; resize:none; min-height:48px; outline:none; }
+  .comment-input:focus { border-color:var(--accent); }
+
+  .comment-item { display:flex; gap:8px; margin-bottom:10px; }
+  .comment-item-avatar { width:28px; height:28px; border-radius:50%; background:var(--bg3); border:1px solid var(--border); display:flex; align-items:center; justify-content:center; font-weight:700; font-size:11px; flex-shrink:0; color:var(--accent2); }
+  .comment-item-body { flex:1; min-width:0; }
+  .comment-item-meta { display:flex; align-items:center; gap:6px; margin-bottom:2px; }
+  .comment-item-name { font-size:13px; font-weight:600; }
+  .comment-item-time { font-size:11px; color:var(--muted); }
+  .comment-item-content { font-size:13px; line-height:1.5; }
+  .comment-item-actions { display:flex; gap:4px; margin-top:4px; }
+  .comment-action-btn { background:none; border:none; cursor:pointer; font-size:11px; color:var(--muted); font-family:var(--font); padding:2px 6px; border-radius:4px; }
+  .comment-action-btn:hover { background:var(--bg3); color:var(--text); }
+
+  .replies-list { margin-left:36px; margin-top:8px; border-left:2px solid var(--border); padding-left:12px; }
+  .reply-compose { display:flex; gap:8px; margin-top:8px; }
+  .reply-input { background:var(--bg3); border:1px solid var(--border); border-radius:8px; color:var(--text); font-family:var(--font); font-size:12px; padding:6px 10px; flex:1; resize:none; outline:none; min-height:36px; }
+  .reply-input:focus { border-color:var(--accent); }
+</style>
+
+<script>
+  const CURRENT_USER_ID = {{ user.id }};
+
+  // ── Char counter ──
+  const textarea = document.getElementById("compose-text");
+  const counter  = document.getElementById("char-count");
+  textarea.addEventListener("input", () => { counter.textContent = 280 - textarea.value.length; });
+
+  // ── Like post ──
+  async function likePost(btn) {
+    if (btn.classList.contains("liked")) return;
+    const postId = btn.dataset.id;
+    btn.disabled = true;
+    const res  = await fetch(`/post/${postId}/like`, { method: "POST" });
+    const data = await res.json();
+    if (data.likes !== undefined) {
+      btn.querySelector(".like-count").textContent = data.likes;
+      btn.classList.add("liked");
+      btn.style.color = "var(--red)";
+    }
+  }
+
+  // ── Quick repost ──
+  async function quickRepost(postId, btn) {
+    btn.disabled = true;
+    btn.textContent = "🔁 Reposting...";
+    const res  = await fetch(`/post/${postId}/repost`, { method: "POST" });
+    const data = await res.json();
+    btn.textContent = data.status === "ok" ? "🔁 Reposted!" : "🔁 Failed";
+  }
+
+  // ── Toggle repost with thought box ──
+  function toggleThought(postId) {
+    const box = document.getElementById(`thought-${postId}`);
+    box.style.display = box.style.display === "none" ? "block" : "none";
+    if (box.style.display === "block") document.getElementById(`thought-text-${postId}`).focus();
+  }
+
+  // ── Repost with thought ──
+  async function repostWithThought(postId) {
+    const thought = document.getElementById(`thought-text-${postId}`).value.trim();
+    if (!thought) return;
+    const fd = new FormData();
+    fd.append("thought", thought);
+    const res  = await fetch(`/post/${postId}/repost-thought`, { method: "POST", body: fd });
+    const data = await res.json();
+    if (data.status === "ok") {
+      toggleThought(postId);
+      document.getElementById(`thought-text-${postId}`).value = "";
+      setTimeout(() => location.reload(), 500);
+    }
+  }
+
+  // ── Share (copy link) ──
+  function sharePost(postId, btn) {
+    const url = `${window.location.origin}/post/${postId}`;
+    navigator.clipboard.writeText(url).then(() => {
+      const orig = btn.textContent;
+      btn.textContent = "✅ Copied!";
+      setTimeout(() => { btn.textContent = orig; }, 2000);
+    });
+  }
+
+  // ── Toggle comments ──
+  async function toggleComments(postId) {
+    const section = document.getElementById(`comments-${postId}`);
+    const isHidden = section.style.display === "none";
+    section.style.display = isHidden ? "block" : "none";
+    if (isHidden) await loadComments(postId);
+  }
+
+  // ── Load comments ──
+  async function loadComments(postId) {
+    const res      = await fetch(`/post/${postId}/comments`);
+    const comments = await res.json();
+    const list     = document.getElementById(`comments-list-${postId}`);
+    list.innerHTML = "";
+    comments.forEach(c => list.appendChild(buildComment(c, postId)));
+    document.getElementById(`ccount-${postId}`).textContent = countAll(comments);
+  }
+
+  function countAll(comments) {
+    return comments.reduce((n, c) => n + 1 + countAll(c.replies), 0);
+  }
+
+  // ── Build a comment DOM element (recursive) ──
+  function buildComment(c, postId, depth = 0) {
+    const wrap = document.createElement("div");
+    wrap.className = "comment-item";
+    wrap.id = `comment-${c.id}`;
+
+    wrap.innerHTML = `
+      <div class="comment-item-avatar">${c.display_name[0].toUpperCase()}</div>
+      <div class="comment-item-body">
+        <div class="comment-item-meta">
+          <span class="comment-item-name">@${c.username}</span>
+          <span class="comment-item-time">${c.created_at}</span>
+        </div>
+        <div class="comment-item-content">${escHtml(c.content)}</div>
+        <div class="comment-item-actions">
+          <button class="comment-action-btn" onclick="likeComment(${c.id}, this)">❤️ ${c.likes}</button>
+          <button class="comment-action-btn" onclick="toggleReplyBox(${c.id}, ${postId})">💬 Reply</button>
+        </div>
+        <div class="reply-compose" id="reply-box-${c.id}" style="display:none;">
+          <textarea class="reply-input" placeholder="Write a reply..." maxlength="500" id="reply-input-${c.id}"></textarea>
+          <button class="btn btn-primary btn-sm" onclick="submitComment(${postId}, ${c.id})">Post</button>
+        </div>
+        <div class="replies-list" id="replies-${c.id}"></div>
+      </div>`;
+
+    // Render nested replies
+    const repliesEl = wrap.querySelector(`#replies-${c.id}`);
+    c.replies.forEach(r => repliesEl.appendChild(buildComment(r, postId, depth + 1)));
+
+    return wrap;
+  }
+
+  // ── Like a comment ──
+  async function likeComment(commentId, btn) {
+    const res  = await fetch(`/comment/${commentId}/like`, { method: "POST" });
+    const data = await res.json();
+    if (data.likes !== undefined) {
+      btn.innerHTML = `❤️ ${data.likes}`;
+      btn.style.color = "var(--red)";
+      btn.disabled = true;
+    }
+  }
+
+  // ── Toggle reply box ──
+  function toggleReplyBox(commentId, postId) {
+    const box = document.getElementById(`reply-box-${commentId}`);
+    box.style.display = box.style.display === "none" ? "flex" : "none";
+    if (box.style.display === "flex") document.getElementById(`reply-input-${commentId}`).focus();
+  }
+
+  // ── Submit comment or reply ──
+  async function submitComment(postId, parentId) {
+    const inputId = parentId ? `reply-input-${parentId}` : `comment-input-${postId}`;
+    const input   = document.getElementById(inputId);
+    const content = input.value.trim();
+    if (!content) return;
+
+    const fd = new FormData();
+    fd.append("content", content);
+    if (parentId) fd.append("parent_id", parentId);
+
+    const res  = await fetch(`/post/${postId}/comment`, { method: "POST", body: fd });
+    const data = await res.json();
+
+    if (data.status === "ok") {
+      input.value = "";
+      if (parentId) {
+        // Hide reply box and append reply inline
+        document.getElementById(`reply-box-${parentId}`).style.display = "none";
+        const newComment = buildComment({
+          id: data.comment_id, user_id: CURRENT_USER_ID,
+          username: data.username, display_name: data.display_name,
+          content: data.content, likes: 0,
+          parent_id: data.parent_id, created_at: data.created_at, replies: []
+        }, postId, 1);
+        document.getElementById(`replies-${parentId}`).appendChild(newComment);
+      } else {
+        // Append top-level comment
+        const newComment = buildComment({
+          id: data.comment_id, user_id: CURRENT_USER_ID,
+          username: data.username, display_name: data.display_name,
+          content: data.content, likes: 0,
+          parent_id: null, created_at: data.created_at, replies: []
+        }, postId, 0);
+        document.getElementById(`comments-list-${postId}`).appendChild(newComment);
+      }
+      // Update comment count
+      const ccount = document.getElementById(`ccount-${postId}`);
+      ccount.textContent = parseInt(ccount.textContent) + 1;
+    }
+  }
+
+  function escHtml(str) {
+    return str.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  }
+
+  async function bookmarkPost(postId, btn) {
+    const fd = new FormData();
+    fd.append("post_id", postId);
+    const res = await fetch("/bookmarks/add", { method: "POST", body: fd });
+    if ((await res.json()).status === "ok") {
+      btn.textContent = "🔖 Saved!";
+      btn.style.color = "var(--accent2)";
+    }
+  }
+
+  async function toggleVisibility(postId, btn) {
+    const res  = await fetch(`/post/${postId}/visibility`, { method: "POST" });
+    const data = await res.json();
+    if (data.status === "ok") {
+      btn.textContent = data.is_private ? "🔓 Unprivate" : "🔒 Make Private";
+    }
+  }
+
+  async function reportPost(postId) {
+    const reason = prompt("Reason for reporting this post?");
+    if (!reason) return;
+    const fd = new FormData();
+    fd.append("target_type", "post");
+    fd.append("target_id", postId);
+    fd.append("reason", reason);
+    const res  = await fetch("/report", { method: "POST", body: fd });
+    const data = await res.json();
+    alert(data.message || "Reported.");
+  }
+</script>
+{% endblock %}
+
+{% block aside %}
+{% if suggested %}
+<div class="card">
+  <div style="font-size:13px;font-weight:700;color:var(--muted);margin-bottom:12px;">WHO TO FOLLOW</div>
+  {% for u in suggested %}
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+    <div style="width:36px;height:36px;border-radius:50%;background:var(--bg3);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--accent2);">{{ u.display_name[0].upper() }}</div>
+    <div style="flex:1;min-width:0;">
+      <div style="font-size:13px;font-weight:600;">{{ u.display_name }}</div>
+      <div style="font-size:12px;color:var(--muted);">@{{ u.username }}</div>
+    </div>
+    <a href="/user/{{ u.username }}" class="btn btn-ghost btn-sm">View</a>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+{% endblock %}

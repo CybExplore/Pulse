@@ -1,0 +1,183 @@
+{% extends "app/layout.html" %}
+{% block title %}Settings — CybExplore: A01{% endblock %}
+{% block content %}
+<div style="padding:24px;max-width:600px;">
+  <h2 style="font-size:18px;font-weight:700;margin-bottom:24px;">Account Settings</h2>
+
+  <!-- Profile Picture -->
+  <div class="card" style="margin-bottom:16px;">
+    <div style="font-size:13px;font-weight:700;color:var(--muted);margin-bottom:4px;">PROFILE PICTURE</div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:14px;">Upload a new profile photo.</div>
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:12px;">
+      <div id="avatar-preview" style="width:60px;height:60px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:22px;color:#fff;flex-shrink:0;">{{ user.display_name[0].upper() }}</div>
+      <div style="flex:1;">
+        <input type="file" id="avatar-input" accept="image/*" style="font-size:13px;" onchange="previewAvatar(this)" />
+        <div style="font-size:11px;color:var(--muted);margin-top:4px;">PNG, JPG, GIF up to 5MB</div>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <button class="btn btn-primary btn-sm" onclick="uploadAvatar()">Upload</button>
+      <span id="avatar-msg" style="font-size:12px;"></span>
+    </div>
+  </div>
+
+  <!-- Profile & Contact -->
+  <form method="POST">
+    <div class="card" style="margin-bottom:16px;">
+      <div style="font-size:13px;font-weight:700;color:var(--muted);margin-bottom:16px;">PROFILE</div>
+      <div style="margin-bottom:14px;">
+        <label style="display:block;font-size:13px;font-weight:600;color:var(--muted);margin-bottom:6px;">Display Name</label>
+        <input type="text" name="display_name" value="{{ user.display_name }}" />
+      </div>
+      <div style="margin-bottom:14px;">
+        <label style="display:block;font-size:13px;font-weight:600;color:var(--muted);margin-bottom:6px;">Bio</label>
+        <textarea name="bio">{{ user.bio }}</textarea>
+      </div>
+    </div>
+    <div class="card" style="margin-bottom:16px;">
+      <div style="font-size:13px;font-weight:700;color:var(--muted);margin-bottom:16px;">CONTACT</div>
+      <div style="margin-bottom:14px;">
+        <label style="display:block;font-size:13px;font-weight:600;color:var(--muted);margin-bottom:6px;">Phone</label>
+        <input type="text" name="phone" value="{{ user.phone }}" />
+      </div>
+    </div>
+    <button type="submit" class="btn btn-primary" style="margin-bottom:24px;">Save changes</button>
+  </form>
+
+  <!-- Change Platform Email -->
+  <div class="card" style="margin-bottom:16px;">
+    <div style="font-size:13px;font-weight:700;color:var(--muted);margin-bottom:4px;">PLATFORM EMAIL</div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:14px;">This is the email others see on your profile.</div>
+    <div style="margin-bottom:14px;">
+      <label style="display:block;font-size:13px;font-weight:600;color:var(--muted);margin-bottom:6px;">Email</label>
+      <input type="email" id="new-email" value="{{ user.email }}" />
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <button class="btn btn-primary btn-sm" onclick="changeEmail()">Update Email</button>
+      <span id="email-msg" style="font-size:12px;"></span>
+    </div>
+  </div>
+
+  <!-- Change Password -->
+  <div class="card" style="margin-bottom:16px;">
+    <div style="font-size:13px;font-weight:700;color:var(--muted);margin-bottom:4px;">CHANGE PASSWORD</div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:14px;">Update your login password.</div>
+    <div style="margin-bottom:14px;">
+      <label style="display:block;font-size:13px;font-weight:600;color:var(--muted);margin-bottom:6px;">New Password</label>
+      <input type="password" id="new-password" placeholder="Enter new password" />
+    </div>
+    <div style="margin-bottom:14px;">
+      <label style="display:block;font-size:13px;font-weight:600;color:var(--muted);margin-bottom:6px;">Confirm Password</label>
+      <input type="password" id="confirm-password" placeholder="Confirm new password" />
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <button class="btn btn-primary btn-sm" onclick="changePassword()">Update Password</button>
+      <span id="password-msg" style="font-size:12px;"></span>
+    </div>
+  </div>
+
+  <!-- Export Data -->
+  <div class="card" style="margin-bottom:16px;">
+    <div style="font-size:13px;font-weight:700;color:var(--muted);margin-bottom:4px;">EXPORT YOUR DATA</div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:14px;">Download a copy of your posts, messages and profile data.</div>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <button class="btn btn-ghost btn-sm" onclick="exportData()">⬇ Request Export</button>
+      <span id="export-msg" style="font-size:12px;"></span>
+    </div>
+    <div id="export-link" style="margin-top:10px;display:none;">
+      <a id="export-download" href="#" class="btn btn-primary btn-sm">⬇ Download Export</a>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  // ── Avatar preview ──
+  function previewAvatar(input) {
+    if (input.files && input.files[0]) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const preview = document.getElementById("avatar-preview");
+        preview.style.backgroundImage = `url(${e.target.result})`;
+        preview.style.backgroundSize  = "cover";
+        preview.textContent = "";
+      };
+      reader.readAsDataURL(input.files[0]);
+    }
+  }
+
+  // ── Upload avatar ──
+  async function uploadAvatar() {
+    const file = document.getElementById("avatar-input").files[0];
+    const msg  = document.getElementById("avatar-msg");
+    if (!file) { msg.textContent = "Please select a file first."; msg.style.color = "var(--red)"; return; }
+
+    const fd = new FormData();
+    fd.append("avatar",   file);
+    fd.append("user_id",  "{{ user.id }}");  // VULN: user_id in form — tamperable
+
+    const res  = await fetch("/settings/upload-avatar", { method: "POST", body: fd });
+    const data = await res.json();
+    msg.textContent = data.status === "ok" ? "✅ Uploaded!" : `❌ ${data.message}`;
+    msg.style.color = data.status === "ok" ? "var(--green)" : "var(--red)";
+  }
+
+  // ── Change email ──
+  async function changeEmail() {
+    const email = document.getElementById("new-email").value.trim();
+    const msg   = document.getElementById("email-msg");
+    const fd    = new FormData();
+    fd.append("email",   email);
+    fd.append("user_id", "{{ user.id }}");  // VULN: user_id in form — tamperable
+
+    const res  = await fetch("/settings/change-email", { method: "POST", body: fd });
+    const data = await res.json();
+    msg.textContent = data.message;
+    msg.style.color = data.status === "ok" ? "var(--green)" : "var(--red)";
+  }
+
+  // ── Change password ──
+  async function changePassword() {
+    const newPw   = document.getElementById("new-password").value;
+    const confirm = document.getElementById("confirm-password").value;
+    const msg     = document.getElementById("password-msg");
+    const fd      = new FormData();
+    fd.append("new_password",     newPw);
+    fd.append("confirm_password", confirm);
+
+    const res  = await fetch("/settings/change-password", { method: "POST", body: fd });
+    const data = await res.json();
+    msg.textContent = data.message;
+    msg.style.color = data.status === "ok" ? "var(--green)" : "var(--red)";
+    if (data.status === "ok") {
+      document.getElementById("new-password").value     = "";
+      document.getElementById("confirm-password").value = "";
+    }
+  }
+
+  // ── Export data ──
+  async function exportData() {
+    const msg = document.getElementById("export-msg");
+    msg.textContent = "Generating export...";
+    msg.style.color = "var(--muted)";
+
+    const fd = new FormData();
+    fd.append("user_id", "{{ user.id }}");  // VULN: user_id in form — tamperable
+
+    const res  = await fetch("/settings/export", { method: "POST", body: fd });
+    const data = await res.json();
+
+    if (data.status === "ok") {
+      msg.textContent = "✅ " + data.message;
+      msg.style.color = "var(--green)";
+      const linkBox = document.getElementById("export-link");
+      document.getElementById("export-download").href = data.download;
+      linkBox.style.display = "block";
+    } else {
+      msg.textContent = "❌ " + data.message;
+      msg.style.color = "var(--red)";
+    }
+  }
+</script>
+{% endblock %}
+{% block aside %}{% endblock %}

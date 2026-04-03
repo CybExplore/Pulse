@@ -1,0 +1,9 @@
+flask
+flask-socketio
+flask-sqlalchemy
+pyjwt
+python-engineio
+python-dotenv
+eventlet
+pymysql
+cryptography

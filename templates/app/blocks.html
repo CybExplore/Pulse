@@ -1,0 +1,25 @@
+{% extends "app/layout.html" %}
+{% block title %}Blocked Users — Pulse{% endblock %}
+{% block content %}
+<div style="padding:20px 24px;border-bottom:1px solid var(--border);">
+  <h2 style="font-size:18px;font-weight:700;">Blocked Users{% if target.id != user.id %} — @{{ target.username }}{% endif %}</h2>
+  {% if target.id != user.id %}<div style="font-size:12px;color:var(--red);margin-top:4px;">⚠️ You are viewing @{{ target.username }}'s block list</div>{% endif %}
+</div>
+<div>
+  {% if blocks %}
+    {% for b in blocks %}
+    <div style="display:flex;align-items:center;gap:12px;padding:14px 24px;border-bottom:1px solid var(--border);">
+      <div style="width:40px;height:40px;border-radius:50%;background:var(--bg3);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--muted);">{{ b.blocked.display_name[0].upper() }}</div>
+      <div style="flex:1;">
+        <div style="font-size:14px;font-weight:600;">{{ b.blocked.display_name }}</div>
+        <div style="font-size:13px;color:var(--muted);">@{{ b.blocked.username }}</div>
+      </div>
+      <span style="font-size:12px;color:var(--muted);">{{ b.created_at.strftime('%b %d') }}</span>
+    </div>
+    {% endfor %}
+  {% else %}
+    <div style="text-align:center;color:var(--muted);padding:60px 0;">No blocked users.</div>
+  {% endif %}
+</div>
+{% endblock %}
+{% block aside %}{% endblock %}

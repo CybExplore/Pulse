@@ -1,0 +1,57 @@
+{% extends "app/layout.html" %}
+{% block title %}Message #{{ msg.id }} — CybExplore: A01{% endblock %}
+{% block content %}
+<div style="padding:24px;max-width:600px;">
+  <a href="/messages" style="font-size:13px;color:var(--muted);text-decoration:none;">← Back to messages</a>
+  <div class="card" style="margin-top:20px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+      <div style="font-size:13px;font-weight:700;color:var(--muted);">DIRECT MESSAGE — ID #{{ msg.id }}</div>
+      {% if msg.sender_id != user.id and msg.receiver_id != user.id %}
+      <div style="font-size:12px;background:rgba(248,113,113,0.1);color:var(--red);border:1px solid rgba(248,113,113,0.3);padding:4px 10px;border-radius:20px;">⚠️ Not your message</div>
+      {% endif %}
+    </div>
+    <div style="display:flex;gap:16px;margin-bottom:16px;">
+      <div>
+        <div style="font-size:11px;color:var(--muted);">FROM</div>
+        <div style="font-size:14px;font-weight:600;">@{{ msg.sender.username }}</div>
+      </div>
+      <div style="color:var(--muted);">→</div>
+      <div>
+        <div style="font-size:11px;color:var(--muted);">TO</div>
+        <div style="font-size:14px;font-weight:600;">@{{ msg.receiver.username }}</div>
+      </div>
+      <div style="margin-left:auto;">
+        <div style="font-size:11px;color:var(--muted);">TIME</div>
+        <div style="font-size:13px;">{{ msg.created_at.strftime('%b %d, %H:%M') }}</div>
+      </div>
+    </div>
+    <div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:16px;font-size:15px;line-height:1.6;">
+      {{ msg.content }}
+    </div>
+    {% if msg.sender_id == user.id or msg.receiver_id == user.id %}
+    <form method="POST" action="/messages/delete/{{ msg.id }}" style="margin-top:16px;">
+      <button type="submit" class="btn btn-danger btn-sm">Delete message</button>
+    </form>
+    {% else %}
+    <form method="POST" action="/messages/delete/{{ msg.id }}" style="margin-top:16px;">
+      <button type="submit" class="btn btn-danger btn-sm">Delete this message (not yours!)</button>
+    </form>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+{% block aside %}
+<div class="card">
+  {% if msg.sender_id != user.id and msg.receiver_id != user.id %}
+  <div style="font-size:13px;font-weight:700;color:var(--red);margin-bottom:8px;">🚨 EXPLOIT TRIGGERED</div>
+  <div style="font-size:12px;color:var(--muted);line-height:1.6;">
+    You accessed a private DM that doesn't belong to you. This has been logged to the admin dashboard.
+  </div>
+  {% else %}
+  <div style="font-size:13px;font-weight:700;color:var(--muted);margin-bottom:8px;">💡 HINT</div>
+  <div style="font-size:12px;color:var(--muted);line-height:1.6;">
+    Try changing the message ID in the URL to read other users' private conversations.
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

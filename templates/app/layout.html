@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block body %}
+<div class="app-layout">
+  <nav class="sidebar">
+    <div class="sidebar-logo">Pulse</div>
+    <div class="nav-links">
+      <a href="/search"        class="nav-link {% if request.path=='/search' %}active{% endif %}">🔍 Search</a>
+      <a href="/feed"          class="nav-link {% if request.path=='/feed' %}active{% endif %}">🏠 Home</a>
+      <a href="/notifications" class="nav-link {% if request.path=='/notifications' %}active{% endif %}">
+        🔔 Notifications <span class="nav-badge" id="notif-badge"></span>
+      </a>
+      <a href="/messages"      class="nav-link {% if '/messages' in request.path %}active{% endif %}">
+        💬 Messages <span class="nav-badge" id="msg-badge"></span>
+      </a>
+      <a href="/user/{{ user.username }}" class="nav-link">👤 Profile</a>
+      <a href="/settings"      class="nav-link {% if request.path=='/settings' %}active{% endif %}">⚙️ Settings</a>
+      <a href="/stories"       class="nav-link {% if request.path=='/stories' %}active{% endif %}">📖 Stories</a>
+      <a href="/bookmarks"     class="nav-link {% if request.path=='/bookmarks' %}active{% endif %}">🔖 Bookmarks</a>
+      {% if user.role == 'admin' %}
+      <a href="/reports"       class="nav-link {% if request.path=='/reports' %}active{% endif %}">🚩 Reports</a>
+      {% endif %}
+      <a href="/api/keys"      class="nav-link {% if request.path=='/api/keys' %}active{% endif %}">🔑 API Keys</a>
+    </div>
+    <div class="sidebar-user">
+      <div class="sidebar-avatar">{{ user.display_name[0].upper() }}</div>
+      <div class="sidebar-info">
+        <div class="sidebar-name">{{ user.display_name }}</div>
+        <div class="sidebar-username">@{{ user.username }}</div>
+      </div>
+      <a href="/logout" class="logout-btn" title="Logout">↩</a>
+    </div>
+  </nav>
+  <main class="main-content">{% block content %}{% endblock %}</main>
+  <aside class="right-panel">{% block aside %}{% endblock %}</aside>
+</div>
+
+<style>
+  .app-layout { display:grid; grid-template-columns:240px 1fr 280px; min-height:100vh; max-width:1200px; margin:0 auto; }
+  .sidebar { position:sticky; top:0; height:100vh; display:flex; flex-direction:column; padding:24px 16px; border-right:1px solid var(--border); }
+  .sidebar-logo { font-size:26px; font-weight:700; letter-spacing:-1px;
+    background:linear-gradient(135deg,var(--accent2),#c4b5fd); -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+    padding:0 12px; margin-bottom:28px; }
+  .nav-links { flex:1; display:flex; flex-direction:column; gap:4px; }
+  .nav-link { display:flex; align-items:center; gap:12px; padding:10px 12px; border-radius:10px;
+    color:var(--muted); font-size:15px; font-weight:500; text-decoration:none; transition:all 0.15s; }
+  .nav-link:hover { background:var(--bg3); color:var(--text); text-decoration:none; }
+  .nav-link.active { background:rgba(124,106,247,0.15); color:var(--accent2); }
+  .sidebar-user { display:flex; align-items:center; gap:10px; padding:12px; border-radius:var(--radius);
+    background:var(--bg2); border:1px solid var(--border); margin-top:16px; }
+  .sidebar-avatar { width:36px; height:36px; border-radius:50%; background:var(--accent);
+    display:flex; align-items:center; justify-content:center; font-weight:700; font-size:14px; flex-shrink:0; }
+  .sidebar-info { flex:1; min-width:0; }
+  .sidebar-name { font-size:13px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .sidebar-username { font-size:12px; color:var(--muted); }
+  .logout-btn { color:var(--muted); font-size:18px; text-decoration:none; }
+  .logout-btn:hover { color:var(--red); }
+  .main-content { border-right:1px solid var(--border); }
+  .right-panel { padding:24px 16px; }
+</style>
+{% endblock %}

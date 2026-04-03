@@ -1,0 +1,31 @@
+{% extends "app/layout.html" %}
+{% block title %}{{ list_type }} — @{{ target.username }}{% endblock %}
+{% block content %}
+<div style="padding:20px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;">
+  <a href="/user/{{ target.username }}" style="color:var(--muted);text-decoration:none;font-size:18px;">←</a>
+  <div>
+    <div style="font-size:17px;font-weight:700;">{{ list_type }}</div>
+    <div style="font-size:13px;color:var(--muted);">@{{ target.username }}</div>
+  </div>
+</div>
+<div>
+  {% if people %}
+    {% for person in people %}
+    <div style="display:flex;align-items:center;gap:12px;padding:14px 24px;border-bottom:1px solid var(--border);">
+      <div style="width:42px;height:42px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:16px;flex-shrink:0;">{{ person.display_name[0].upper() }}</div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:14px;font-weight:600;">{{ person.display_name }}
+          {% if person.verified %}<span style="color:var(--accent2);">✓</span>{% endif %}
+        </div>
+        <div style="font-size:13px;color:var(--muted);">@{{ person.username }}</div>
+        {% if person.bio %}<div style="font-size:13px;color:var(--muted);margin-top:2px;">{{ person.bio[:80] }}</div>{% endif %}
+      </div>
+      <a href="/user/{{ person.username }}" class="btn btn-ghost btn-sm">View</a>
+    </div>
+    {% endfor %}
+  {% else %}
+    <div style="text-align:center;color:var(--muted);padding:60px 0;">No {{ list_type|lower }} yet.</div>
+  {% endif %}
+</div>
+{% endblock %}
+{% block aside %}{% endblock %}

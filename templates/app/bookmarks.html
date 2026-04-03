@@ -1,0 +1,37 @@
+{% extends "app/layout.html" %}
+{% block title %}Bookmarks — Pulse{% endblock %}
+{% block content %}
+<div style="padding:20px 24px;border-bottom:1px solid var(--border);">
+  <h2 style="font-size:18px;font-weight:700;">Bookmarks{% if target.id != user.id %} — @{{ target.username }}{% endif %}</h2>
+</div>
+<div>
+  {% if bookmarks %}
+    {% for b in bookmarks %}
+    <div style="padding:16px 24px;border-bottom:1px solid var(--border);">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+        <div style="width:28px;height:28px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;">{{ b.post.author.display_name[0].upper() }}</div>
+        <a href="/user/{{ b.post.author.username }}" style="font-size:13px;font-weight:600;color:var(--text);">@{{ b.post.author.username }}</a>
+        <span style="font-size:11px;color:var(--muted);margin-left:auto;">{{ b.created_at.strftime('%b %d') }}</span>
+      </div>
+      <div style="font-size:14px;line-height:1.5;">{{ b.post.content }}</div>
+      <div style="margin-top:8px;display:flex;gap:10px;">
+        <span style="font-size:12px;color:var(--muted);">❤️ {{ b.post.likes }}</span>
+        <button onclick="removeBookmark({{ b.post_id }}, this)" style="background:none;border:none;font-size:12px;color:var(--muted);cursor:pointer;font-family:var(--font);">🔖 Remove</button>
+      </div>
+    </div>
+    {% endfor %}
+  {% else %}
+    <div style="text-align:center;color:var(--muted);padding:60px 0;">No bookmarks yet.</div>
+  {% endif %}
+</div>
+<script>
+  async function removeBookmark(postId, btn) {
+    const fd = new FormData();
+    fd.append("post_id", postId);
+    fd.append("user_id", "{{ user.id }}");
+    const res = await fetch("/bookmarks/remove", { method: "POST", body: fd });
+    if ((await res.json()).status === "ok") btn.closest("div[style]").remove();
+  }
+</script>
+{% endblock %}
+{% block aside %}{% endblock %}

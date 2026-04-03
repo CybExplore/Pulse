@@ -1,0 +1,47 @@
+{% extends "app/layout.html" %}
+{% block title %}Messages — CybExplore: A01{% endblock %}
+{% block content %}
+<div style="padding:20px 24px;border-bottom:1px solid var(--border);">
+  <h2 style="font-size:18px;font-weight:700;">Messages</h2>
+</div>
+
+<div>
+  {% if convos %}
+    {% for c in convos %}
+    <a href="/messages/{{ c.user.id }}" style="text-decoration:none;">
+      <div class="convo-row {% if c.unread > 0 %}convo-unread{% endif %}">
+        <div class="convo-avatar">{{ c.user.display_name[0].upper() }}</div>
+        <div style="flex:1;min-width:0;">
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <div style="font-size:14px;font-weight:{% if c.unread > 0 %}700{% else %}600{% endif %};color:var(--text);">
+              {{ c.user.display_name }}
+              {% if c.user.verified %}<span style="color:var(--accent2);font-size:12px;">✓</span>{% endif %}
+            </div>
+            <div style="font-size:11px;color:var(--muted);">{{ c.last_msg.created_at.strftime('%H:%M') }}</div>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:2px;">
+            <div style="font-size:13px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:200px;">
+              {% if c.last_msg.sender_id == user.id %}You: {% endif %}
+              {{ c.last_msg.content[:50] }}{% if c.last_msg.content|length > 50 %}...{% endif %}
+            </div>
+            {% if c.unread > 0 %}
+            <div style="background:var(--accent);color:#fff;border-radius:20px;font-size:10px;font-weight:700;padding:2px 7px;flex-shrink:0;">{{ c.unread }}</div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </a>
+    {% endfor %}
+  {% else %}
+    <div style="text-align:center;color:var(--muted);padding:60px 0;">No messages yet. Visit someone's profile to start a conversation.</div>
+  {% endif %}
+</div>
+
+<style>
+  .convo-row { display:flex; align-items:center; gap:12px; padding:14px 24px; border-bottom:1px solid var(--border); transition:background 0.1s; }
+  .convo-row:hover { background:rgba(255,255,255,0.02); }
+  .convo-unread { background:rgba(124,106,247,0.04); }
+  .convo-avatar { width:44px; height:44px; border-radius:50%; background:var(--accent); display:flex; align-items:center; justify-content:center; font-weight:700; font-size:17px; flex-shrink:0; color:#fff; }
+</style>
+{% endblock %}
+{% block aside %}{% endblock %}
