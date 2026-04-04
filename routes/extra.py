@@ -180,8 +180,11 @@ def search_history():
             severity="medium"
         )
 
-    logs = SearchLog.query.filter_by(user_id=target_id)\
-                          .order_by(SearchLog.created_at.desc()).limit(50).all()
+    logs = db.session.query(SearchLog) \
+    .filter(SearchLog.user_id == target_id) \
+    .order_by(SearchLog.created_at.desc()) \
+    .limit(50) \
+    .all()
 
     return render_template("app/search_history.html", user=me, target=target, logs=logs)
 

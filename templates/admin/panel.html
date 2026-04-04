@@ -61,7 +61,7 @@
         <table>
           <thead>
             <tr>
-              <th>ID</th><th>Username</th><th>Display Name</th><th>Email</th><th>Role</th><th>Actions</th>
+              <th>ID</th><th>Username</th><th>Display Name</th><th>Email</th><th>Role</th> {% if user %} <th>Actions</th> {% endif %}
             </tr>
           </thead>
           <tbody>
@@ -70,8 +70,9 @@
               <td style="color:var(--muted);">{{ u.id }}</td>
               <td><a href="/user/{{ u.username }}">@{{ u.username }}</a></td>
               <td>{{ u.display_name }}</td>
-              <td style="color:var(--muted);">{{ u.email }}</td>
+              <td style="color:var(--muted);">{{ u.platform_email }}</td>
               <td><span class="badge badge-{{ u.role }}">{{ u.role }}</span></td>
+              {% if user %}
               <td style="display:flex;gap:6px;align-items:center;">
                 <form method="POST" action="/admin/set-role" style="display:flex;gap:4px;align-items:center;">
                   <input type="hidden" name="user_id" value="{{ u.id }}" />
@@ -82,10 +83,13 @@
                   </select>
                   <button type="submit" class="btn btn-ghost btn-sm">Set</button>
                 </form>
+                {% if u.role == 'admin' %}
                 <form method="POST" action="/admin/delete-user/{{ u.id }}" onsubmit="return confirm('Delete @{{ u.username }}?')">
                   <button type="submit" class="btn btn-danger btn-sm">Delete</button>
                 </form>
+                {% endif %}
               </td>
+              {% endif %}
             </tr>
             {% endfor %}
           </tbody>
@@ -98,7 +102,7 @@
       <div class="section-title">Recent Posts ({{ posts|length }})</div>
       <div class="card">
         <table>
-          <thead><tr><th>ID</th><th>Author</th><th>Content</th><th>Private</th><th>Actions</th></tr></thead>
+          <thead><tr><th>ID</th><th>Author</th><th>Content</th><th>Private</th> {% if user %} <th>Actions</th> {% endif %} </tr></thead>
           <tbody>
             {% for p in posts[:20] %}
             <tr>
@@ -106,12 +110,14 @@
               <td>@{{ p.author.username }}</td>
               <td>{{ p.content[:80] }}{% if p.content|length > 80 %}…{% endif %}</td>
               <td>{% if p.is_private %}🔒{% endif %}</td>
+              {% if user %}
               <td>
                 <a href="/post/{{ p.id }}/edit" class="btn btn-ghost btn-sm">Edit</a>
                 <form method="POST" action="/post/{{ p.id }}/delete" style="display:inline;">
                   <button type="submit" class="btn btn-danger btn-sm">Delete</button>
                 </form>
               </td>
+              {% endif %}
             </tr>
             {% endfor %}
           </tbody>

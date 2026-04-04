@@ -26,7 +26,7 @@
 
       <!-- Sensitive data (IDOR target on other profiles) -->
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:12px;font-size:13px;">
-        <div><span style="color:var(--muted);font-size:12px;">Email </span>{{ target.email or "—" }}</div>
+        <div><span style="color:var(--muted);font-size:12px;">Email </span>{{ target.platform_email or "—" }}</div>
         <div><span style="color:var(--muted);font-size:12px;">Phone </span>{{ target.phone or "—" }}</div>
         <div><span style="color:var(--muted);font-size:12px;">User ID </span>{{ target.id }}</div>
         <div><span style="color:var(--muted);font-size:12px;">Role </span>{{ target.role }}</div>
