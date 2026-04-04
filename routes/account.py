@@ -14,7 +14,7 @@ from extensions import db
 from models import User, PasswordResetToken
 from helpers import current_user, login_required, log_exploit, send_reset_email
 from config import Config
-from werkzeug.security import check_password_hash, generate_password_hash
+from werkzeug.security import generate_password_hash
 
 account = Blueprint("account", __name__)
 
@@ -37,13 +37,7 @@ def generate_reset_token(username):
 def forgot_password():
     message = None
     if request.method == "POST":
-        # username = request.form.get("username", "").strip()
-        
         platform_email = request.form.get("email", "").strip()
-        print(f"\nplatform_email: {platform_email}")
-        print(f"platform_email: {platform_email}")
-        print(f"platform_email: {platform_email}\n")
-        # user     = User.query.filter_by(username=username).first()
 
         user = User.query.filter_by(platform_email=platform_email).first()
         print(f"user: {user}")
