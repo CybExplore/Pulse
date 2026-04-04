@@ -32,7 +32,7 @@ class Config:
     MAIL_DEFAULT_SENDER = os.getenv('MAIL_DEFAULT_SENDER', 'Pulse Monitor <no-reply@pulse.app>')
 
     # App URL
-    APP_URL                        = os.getenv("APP_URL", "http://localhost:5000")
+    APP_URL                        = os.getenv("APP_URL")
 
     # Mail (SMTP) - XAMPP Mercury Mail on port 25
     MAIL_SERVER   = os.getenv("MAIL_SERVER",   "localhost")
