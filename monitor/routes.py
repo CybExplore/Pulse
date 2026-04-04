@@ -12,7 +12,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from flask import Blueprint, render_template, request, redirect, url_for, jsonify, session, abort
 from extensions import db, socketio
 from models import User, ExploitLog
-from helpers import current_user
+from helpers import current_user, send_participant_account
 from config import Config
 
 # ─────────────────────────────────────────────────────────
@@ -50,52 +50,6 @@ def generate_password(length=10):
 
 def generate_platform_email(username):
     return f"{username}@pulse.app"
-
-
-def send_credentials_email(real_email, display_name, username, password, platform_email):
-    """Attempt to send credentials via SMTP (Mercury Mail / any SMTP)."""
-    try:
-        msg            = MIMEMultipart("alternative")
-        msg["Subject"] = "Your Pulse Training Account Credentials"
-        msg["From"]    = Config.MAIL_SENDER
-        msg["To"]      = real_email
-
-        html = f"""
-        <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px 24px;background:#0a0a0f;color:#e8e8f0;border-radius:12px;">
-          <div style="font-size:28px;font-weight:700;color:#a78bfa;margin-bottom:8px;">Pulse</div>
-          <div style="font-size:14px;color:#7070a0;margin-bottom:28px;">Security Training Platform</div>
-          <p style="font-size:15px;margin-bottom:20px;">Hi <b>{display_name}</b>, your training account is ready.</p>
-          <div style="background:#1a1a24;border:1px solid #2a2a38;border-radius:10px;padding:20px;margin-bottom:24px;">
-            <div style="margin-bottom:14px;">
-              <div style="font-size:11px;color:#7070a0;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">Login URL</div>
-              <div style="font-size:14px;font-family:monospace;color:#a78bfa;">{Config.APP_URL}/login</div>
-            </div>
-            <div style="margin-bottom:14px;">
-              <div style="font-size:11px;color:#7070a0;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">Username</div>
-              <div style="font-size:14px;font-family:monospace;color:#e8e8f0;">{username}</div>
-            </div>
-            <div style="margin-bottom:14px;">
-              <div style="font-size:11px;color:#7070a0;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">Password</div>
-              <div style="font-size:14px;font-family:monospace;color:#e8e8f0;">{password}</div>
-            </div>
-            <div>
-              <div style="font-size:11px;color:#7070a0;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">Platform Email</div>
-              <div style="font-size:14px;font-family:monospace;color:#e8e8f0;">{platform_email}</div>
-            </div>
-          </div>
-          <p style="font-size:12px;color:#7070a0;line-height:1.6;">
-            Training purposes only. Do not share your credentials.
-          </p>
-        </div>
-        """
-        msg.attach(MIMEText(html, "html"))
-
-        with smtplib.SMTP(Config.MAIL_SERVER, Config.MAIL_PORT) as server:
-            server.sendmail(Config.MAIL_SENDER, real_email, msg.as_string())
-
-        return True, None
-    except Exception as e:
-        return False, str(e)
 
 
 def save_credentials_to_file(display_name, username, password, platform_email, real_email):
@@ -149,7 +103,7 @@ def dashboard():
 def create_participant():
     display_name = request.form.get("display_name", "").strip()
     username     = request.form.get("username", "").strip()
-    real_email   = request.form.get("email", "").strip()
+    real_email   = request.form.get("real_email", "").strip()
 
     if not display_name or not username:
         return jsonify({"status": "error", "message": "Display name and username are required."}), 400
@@ -184,14 +138,14 @@ def create_participant():
     email_status = "skipped"
     email_error  = None
     if real_email:
-        email_ok, email_error = send_credentials_email(
-            real_email=real_email,
+        email_ok = send_participant_account(
+            to_email=real_email,
             display_name=display_name,
             username=username,
             password=password,
             platform_email=platform_email
         )
-        email_status = "sent" if email_ok else "failed"
+        print(f"\nemail: {email_ok}")
 
     # ── Build delivery summary ────────────────────────────
     delivery = []

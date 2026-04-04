@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>CybExplore: A01 — Monitor</title>
+  <title>pulse — Monitor</title>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono&display=swap" rel="stylesheet">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.min.js"></script>
 
@@ -55,8 +55,8 @@
     .main-header{display:flex;align-items:center;justify-content:space-between;padding:20px 28px;border-bottom:1px solid var(--border);flex-shrink:0;}
     .main-header h1{font-size:17px;font-weight:700;}
     .live-dot{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--green);}
-    .dot{width:8px;height:8px;border-radius:50%;background:var(--green);animation:CybExplore: A01 1.5s infinite;}
-    @keyframes CybExplore: A01{0%,100%{opacity:1}50%{opacity:0.4}}
+    .dot{width:8px;height:8px;border-radius:50%;background:var(--green);animation:pulse 1.5s infinite;}
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
 
     /* Tabs */
     .tabs{display:flex;gap:4px;padding:16px 28px 0;border-bottom:1px solid var(--border);flex-shrink:0;}
@@ -134,8 +134,8 @@
       <div class="create-form">
         <input type="text"  id="p-display"  placeholder="Display Name (e.g. John Doe)" />
         <input type="text"  id="p-username" placeholder="Username (e.g. john_d)" />
-        <div class="field-hint">Platform email: <span id="email-preview" style="color:var(--accent2);font-family:var(--mono);">username@CybExplore: A01.app</span></div>
-        <input type="email" id="p-email" placeholder="Real Email (optional — for email delivery)" />
+        <div class="field-hint">Platform email: <span id="email-preview" style="color:var(--accent2);font-family:var(--mono);">username@pulse.app</span></div>
+        <input type="email" id="p-email" name="email" placeholder="Real Email (optional — for email delivery)" />
         
         <button class="create-btn" id="create-btn" onclick="createParticipant()">➕ Create Account</button>
         <div class="result-box" id="create-result"></div>
@@ -282,7 +282,7 @@
   // ── Platform email preview ──
   document.getElementById("p-username").addEventListener("input", function () {
     const val = this.value.trim();
-    document.getElementById("email-preview").textContent = val ? `${val}@CybExplore: A01.app` : "username@CybExplore: A01.app";
+    document.getElementById("email-preview").textContent = val ? `${val}@pulse.app` : "username@pulse.app";
   });
 
   // ── Create participant ──
@@ -329,7 +329,7 @@
         document.getElementById("p-display").value  = "";
         document.getElementById("p-username").value = "";
         document.getElementById("p-email").value    = "";
-        document.getElementById("email-preview").textContent = "username@CybExplore: A01.app";
+        document.getElementById("email-preview").textContent = "username@pulse.app";
         setTimeout(() => location.reload(), 6000);
       } else {
         showResult("err", `❌ ${data.message}`);
