@@ -5,8 +5,7 @@ from extensions import db
 class User(db.Model):
     id              = db.Column(db.Integer, primary_key=True)
     username        = db.Column(db.String(80), unique=True, nullable=False)
-    password        = db.Column(db.String(120), nullable=False)  # VULN: plaintext
-    password        = db.Column(db.String(250), nullable=False)  
+    password        = db.Column(db.String(500), nullable=False)  
     display_name    = db.Column(db.String(100))
     bio             = db.Column(db.String(300), default="")
 
