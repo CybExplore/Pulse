@@ -121,7 +121,7 @@ def create_participant():
         password=hashed_password,
         display_name=display_name,
         platform_email=platform_email,
-        real_email=real_email,
+        email=real_email,
         role="user",
         verified=False
     )
